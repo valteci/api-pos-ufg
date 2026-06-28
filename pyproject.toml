@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "trabalho-final-api"
+version = "0.1.0"
+description = "Estrutura inicial da API do trabalho final."
+authors = ["Equipe do projeto"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+fastapi = "^0.115.6"
+uvicorn = { extras = ["standard"], version = "^0.34.0" }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

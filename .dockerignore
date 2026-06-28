@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+Dockerfile
+docker-compose.yml
+README.md
+Trabalho_final_-_API.pdf
