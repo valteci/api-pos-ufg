@@ -8,6 +8,7 @@ Este diretório concentra a documentação técnica, arquitetural, operacional e
 - [Regras de negócio](regras-negocio/regras-de-negocio.md)
 - [Contratos HTTP e rotas](apis/contratos-http.md)
 - [Dados de sprints](dados/dados-de-sprints.md)
+- [Integração com OpenAI](integracoes/openai.md)
 - [Estratégia de RAG](rag/estrategia-rag.md)
 - [Autenticação e segurança](seguranca/autenticacao-e-seguranca.md)
 - [Logs, erros e observabilidade](observabilidade/logs-e-erros.md)

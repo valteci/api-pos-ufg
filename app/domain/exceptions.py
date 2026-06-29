@@ -83,3 +83,102 @@ class DadosSprintInvalidosError(ErroDeDominio):
             codigo="dados_sprint_invalidos",
             detalhes=detalhes,
         )
+
+
+class ConfiguracaoOpenAIError(ErroDeDominio):
+    """Erro para uso da OpenAI sem configuração essencial."""
+
+    def __init__(self, variavel: str) -> None:
+        """Cria erro de configuração ausente sem expor valores sensíveis."""
+        super().__init__(
+            "Integração com OpenAI não configurada.",
+            codigo="openai_configuracao_invalida",
+            detalhes={"variavel": variavel},
+        )
+
+
+class OpenAIIntegracaoError(ErroDeDominio):
+    """Erro base para falhas tratadas na integração com OpenAI."""
+
+    def __init__(
+        self,
+        mensagem: str,
+        *,
+        codigo: str,
+        operacao: str,
+        status_code: int | None = None,
+    ) -> None:
+        """Cria erro sanitizado da integração com OpenAI."""
+        detalhes: dict[str, Any] = {"operacao": operacao}
+        if status_code is not None:
+            detalhes["status_code"] = status_code
+
+        super().__init__(
+            mensagem,
+            codigo=codigo,
+            detalhes=detalhes,
+        )
+
+
+class OpenAIRateLimitError(OpenAIIntegracaoError):
+    """Erro para limite de uso atingido na OpenAI."""
+
+    def __init__(self, *, operacao: str, status_code: int | None = None) -> None:
+        """Cria erro de rate limit sanitizado."""
+        super().__init__(
+            "Limite de uso da OpenAI atingido. Tente novamente mais tarde.",
+            codigo="openai_rate_limit",
+            operacao=operacao,
+            status_code=status_code,
+        )
+
+
+class OpenAIAuthenticationError(OpenAIIntegracaoError):
+    """Erro para falha de autenticação na OpenAI."""
+
+    def __init__(self, *, operacao: str, status_code: int | None = None) -> None:
+        """Cria erro de autenticação sanitizado."""
+        super().__init__(
+            "Falha de autenticação na integração com OpenAI.",
+            codigo="openai_autenticacao_invalida",
+            operacao=operacao,
+            status_code=status_code,
+        )
+
+
+class OpenAITimeoutError(OpenAIIntegracaoError):
+    """Erro para timeout em chamada à OpenAI."""
+
+    def __init__(self, *, operacao: str, status_code: int | None = None) -> None:
+        """Cria erro de timeout sanitizado."""
+        super().__init__(
+            "Tempo limite excedido ao consultar a OpenAI.",
+            codigo="openai_timeout",
+            operacao=operacao,
+            status_code=status_code,
+        )
+
+
+class OpenAIIndisponivelError(OpenAIIntegracaoError):
+    """Erro para indisponibilidade ou falha de conexão com a OpenAI."""
+
+    def __init__(self, *, operacao: str, status_code: int | None = None) -> None:
+        """Cria erro de indisponibilidade sanitizado."""
+        super().__init__(
+            "OpenAI indisponível no momento.",
+            codigo="openai_indisponivel",
+            operacao=operacao,
+            status_code=status_code,
+        )
+
+
+class OpenAIRespostaInvalidaError(OpenAIIntegracaoError):
+    """Erro para resposta inesperada ou vazia da OpenAI."""
+
+    def __init__(self, *, operacao: str) -> None:
+        """Cria erro de resposta inválida sanitizado."""
+        super().__init__(
+            "Resposta inválida recebida da OpenAI.",
+            codigo="openai_resposta_invalida",
+            operacao=operacao,
+        )

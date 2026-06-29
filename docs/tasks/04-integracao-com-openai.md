@@ -1,5 +1,7 @@
 # Tarefa 04: Integração com OpenAI
 
+**Status:** concluída
+
 ## Objetivo
 
 Criar camada testável para chamadas de LLM e embeddings da OpenAI.

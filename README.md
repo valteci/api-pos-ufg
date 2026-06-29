@@ -4,9 +4,10 @@ API FastAPI para consulta, sumarização e recuperação de informações sobre
 sprints de uma squad de desenvolvimento.
 
 Nesta etapa a aplicação contém a base FastAPI, carregamento validado de arquivos
-de sprint e segurança inicial por Bearer token. As rotas `/v1/rag` e
-`/v1/resumos` já estão protegidas, mas ainda retornam `501 Not Implemented` até
-as tarefas funcionais de RAG e resumos serem concluídas.
+de sprint, segurança inicial por Bearer token e wrapper interno para OpenAI. As
+rotas `/v1/rag` e `/v1/resumos` já estão protegidas, mas ainda retornam
+`501 Not Implemented` até as tarefas funcionais de RAG e resumos serem
+concluídas.
 
 ## Configurar ambiente
 
@@ -21,6 +22,18 @@ OPENAI_EMBEDDING_MODEL=
 
 O token real deve ficar apenas no `.env` local ou no ambiente de execução. O
 Compose carrega esse arquivo e repassa as variáveis para o container da API.
+
+## Integração com OpenAI
+
+A integração usa o pacote oficial `openai` em uma camada própria:
+
+- `ClienteOpenAI.gerar_resposta`: usa a Responses API para LLM;
+- `ClienteOpenAI.gerar_embedding`: usa a API de embeddings para RAG.
+
+Os modelos vêm de `OPENAI_LLM_MODEL` e `OPENAI_EMBEDDING_MODEL`. A chave vem
+exclusivamente de `OPENAI_API_KEY`. Falhas como rate limit, autenticação
+inválida, indisponibilidade e timeout são convertidas em erros de domínio
+sanitizados, sem expor chave, prompt completo ou mensagem original do SDK.
 
 ## Executar com Docker Compose
 

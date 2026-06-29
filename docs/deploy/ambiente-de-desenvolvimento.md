@@ -52,8 +52,10 @@ Segredos devem ser preenchidos em `.env` local não versionado. `.env.example` p
 
 ## Compose
 
-O `docker-compose.yml` carrega variáveis a partir de `.env` com `env_file` e
-repassa valores não secretos com defaults seguros para o serviço `api`. O
+O `docker-compose.yml` carrega variáveis a partir de `.env` com `env_file`. As
+variáveis essenciais `AUTH_TOKEN`, `OPENAI_API_KEY`, `OPENAI_LLM_MODEL` e
+`OPENAI_EMBEDDING_MODEL` são repassadas explicitamente para o serviço `api` e
+não têm fallback hardcoded. Valores não secretos usam defaults seguros. O
 diretório `data/` é montado como leitura em `/app/data`, alinhado ao `DATA_DIR`
 padrão.
 
