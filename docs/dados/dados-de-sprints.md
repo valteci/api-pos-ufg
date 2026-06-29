@@ -25,6 +25,22 @@ O formato exato dos JSON pode variar, mas a implementação deve reconhecer a es
 
 Campos adicionais podem existir e não devem quebrar a API desnecessariamente.
 
+Na implementação inicial do carregador, uma sprint pode ser representada por:
+
+- um objeto JSON com lista de tarefas em `tarefas`, `tasks`, `issues`, `itens` ou `items`;
+- uma lista JSON na raiz, tratada diretamente como lista de tarefas.
+
+Subtarefas opcionais são reconhecidas nas chaves `subtarefas`, `subtasks`, `sub_tasks`, `sub_tarefas` ou `children`. Quando o campo estiver ausente, nulo ou vazio, a tarefa continua válida.
+
+Campos textuais comuns são normalizados quando presentes:
+
+- título: `titulo`, `title`, `nome`, `name`, `summary` ou `resumo`;
+- descrição: `descricao`, `description`, `detalhes` ou `body`;
+- status: `status`, `estado`, `situacao` ou `state`;
+- responsável: `responsavel`, `assignee`, `assigned_to`, `dev` ou `desenvolvedor`.
+
+Os dados originais continuam preservados nos modelos de domínio para permitir uso posterior em RAG, resumo e auditoria.
+
 ## Validações obrigatórias
 
 O carregamento dos dados deve tratar:

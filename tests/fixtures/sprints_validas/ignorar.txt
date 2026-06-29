@@ -1,0 +1,1 @@
+este arquivo deve ser ignorado pelo carregador de sprints

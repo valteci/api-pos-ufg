@@ -1,0 +1,29 @@
+{
+  "nome": "Sprint 75",
+  "objetivo": "Evoluir autenticação e permissões",
+  "campo_extra_sprint": "preservado",
+  "tarefas": [
+    {
+      "id": "API-1",
+      "titulo": "Criar login",
+      "descricao": "Implementar fluxo de autenticação",
+      "status": "Em desenvolvimento",
+      "responsavel": "Ana",
+      "prioridade": "alta",
+      "subtarefas": [
+        {
+          "id": "API-1.1",
+          "titulo": "Criar schema de autenticação",
+          "status": "Concluída",
+          "responsavel": "Ana"
+        }
+      ]
+    },
+    {
+      "id": "API-2",
+      "titulo": "Ajustar permissões",
+      "status": "Pendente",
+      "responsavel": "Bruno"
+    }
+  ]
+}

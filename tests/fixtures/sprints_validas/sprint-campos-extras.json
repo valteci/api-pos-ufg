@@ -1,0 +1,16 @@
+{
+  "nome": "Sprint com campos extras",
+  "metadados_exportacao": {
+    "ferramenta": "jira"
+  },
+  "tarefas": [
+    {
+      "id": "API-4",
+      "titulo": "Preservar metadados",
+      "campo_extra_tarefa": {
+        "valor": 10
+      },
+      "subtarefas": null
+    }
+  ]
+}

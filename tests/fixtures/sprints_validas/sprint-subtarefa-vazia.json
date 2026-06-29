@@ -1,0 +1,10 @@
+{
+  "nome": "Sprint com subtarefa vazia",
+  "tarefas": [
+    {
+      "id": "API-5",
+      "titulo": "Tarefa sem subtarefas",
+      "subtarefas": []
+    }
+  ]
+}

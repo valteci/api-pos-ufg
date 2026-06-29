@@ -1,5 +1,7 @@
 # Tarefa 01: Configuração base e estrutura
 
+**Status:** concluída
+
 ## Objetivo
 
 Preparar a base da aplicação FastAPI para receber as funcionalidades de sprints, OpenAI, RAG, autenticação, logs e testes.

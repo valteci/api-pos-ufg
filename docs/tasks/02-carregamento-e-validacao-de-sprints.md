@@ -1,5 +1,7 @@
 # Tarefa 02: Carregamento e validação de sprints
 
+**Status:** concluída
+
 ## Objetivo
 
 Implementar leitura, validação e normalização dos arquivos JSON em `data/`.
