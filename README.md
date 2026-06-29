@@ -12,13 +12,22 @@ docker compose up --build
 
 A API ficará disponível em:
 
-- `http://localhost:8000`
 - `http://localhost:8000/health`
 - `http://localhost:8000/docs`
+- `http://localhost:8000/openapi.json`
 
 ## Executar localmente com Poetry
 
 ```bash
 poetry install
 poetry run uvicorn app.main:app --reload
+```
+
+## Testes da base atual
+
+Enquanto a suíte Pytest completa ainda não é adicionada ao projeto, os testes
+iniciais podem ser executados com a biblioteca padrão do Python:
+
+```bash
+poetry run python -m unittest discover -s tests
 ```
