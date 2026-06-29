@@ -12,6 +12,16 @@ Authorization: Bearer <token-de-acesso>
 
 O token real deve vir exclusivamente de `AUTH_TOKEN`. Não deve existir token hardcoded no código, testes, documentação operacional, `README.md`, `compose` ou arquivos versionados.
 
+A implementação atual aplica autenticação no router versionado `/v1`. As rotas
+`POST /v1/rag` e `POST /v1/resumos` já estão protegidas, embora a regra de
+negócio de RAG e resumo ainda seja implementada nas tarefas seguintes. Com
+token válido, essas rotas retornam `501 Not Implemented` até a implementação
+funcional.
+
+Falhas de autenticação retornam `401 Unauthorized` com `WWW-Authenticate:
+Bearer`. O valor recebido no header `Authorization` não é retornado ao cliente
+nem registrado em log.
+
 ## Rotas públicas
 
 Somente rotas de saúde podem ser públicas:
@@ -23,6 +33,9 @@ Somente rotas de saúde podem ser públicas:
 ## Configuração por ambiente
 
 `AUTH_ENABLED` pode existir para facilitar testes e desenvolvimento controlado, mas não deve permitir bypass em produção. Em produção, rotas de negócio devem permanecer autenticadas.
+
+Quando `APP_ENV=production`, a aplicação exige autenticação mesmo que
+`AUTH_ENABLED=false` seja configurado por engano.
 
 ## Validação de entrada
 
@@ -52,6 +65,16 @@ Mensagem do usuário e dados de sprint devem ser tratados como dados não confi�
 CORS deve ser restritivo por padrão. Origens permitidas devem vir de variável de ambiente, como `CORS_ALLOWED_ORIGINS`.
 
 Não usar `*` em produção.
+
+A configuração atual usa `CORS_ALLOWED_ORIGINS` como lista separada por vírgula.
+Quando a variável fica vazia, nenhuma origem de navegador é liberada por padrão.
+Em produção, a aplicação rejeita inicialização com `*`.
+
+## Limite de payload
+
+`MAX_PAYLOAD_BYTES` define o maior payload aceito pela API. Requisições com
+`Content-Length` acima desse limite retornam `413 Payload Too Large` antes de
+chegar aos handlers de negócio.
 
 ## Rate limiting
 

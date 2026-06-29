@@ -25,6 +25,9 @@ LOG_FILE_PATH=logs/api.json
 AUTH_ENABLED=true
 AUTH_TOKEN=
 
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+MAX_PAYLOAD_BYTES=1048576
+
 OPENAI_API_KEY=
 OPENAI_LLM_MODEL=
 OPENAI_EMBEDDING_MODEL=
@@ -48,6 +51,11 @@ MAX_SPRINTS_PER_REQUEST=20
 Segredos devem ser preenchidos em `.env` local não versionado. `.env.example` pode existir apenas com valores fictícios.
 
 ## Compose
+
+O `docker-compose.yml` carrega variáveis a partir de `.env` com `env_file` e
+repassa valores não secretos com defaults seguros para o serviço `api`. O
+diretório `data/` é montado como leitura em `/app/data`, alinhado ao `DATA_DIR`
+padrão.
 
 O `docker-compose.yml` deve ser atualizado quando Redis e ChromaDB forem integrados de fato. Não adicionar serviços sem uso real na aplicação.
 

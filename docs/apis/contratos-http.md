@@ -60,9 +60,11 @@ Status previstos:
 - `200 OK`: resumo gerado.
 - `401 Unauthorized`: token ausente ou inválido.
 - `404 Not Found`: sprint solicitada não encontrada.
+- `413 Payload Too Large`: payload acima do limite configurado.
 - `422 Unprocessable Entity`: payload inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI.
 - `504 Gateway Timeout`: timeout em integração externa.
+- `501 Not Implemented`: contrato protegido disponível antes da implementação funcional.
 
 ## `POST /v1/rag`
 
@@ -105,9 +107,11 @@ Status previstos:
 - `200 OK`: fragmentos recuperados.
 - `401 Unauthorized`: token ausente ou inválido.
 - `404 Not Found`: sprint solicitada não encontrada.
+- `413 Payload Too Large`: payload acima do limite configurado.
 - `422 Unprocessable Entity`: `rank`, `mensagem`, `sprints` ou `tamanho_fragmento` inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI ou no banco vetorial.
 - `504 Gateway Timeout`: timeout em integração externa.
+- `501 Not Implemented`: contrato protegido disponível antes da implementação funcional.
 
 ## Limites recomendados
 
@@ -117,5 +121,6 @@ Os limites devem ser configuráveis por ambiente, com valores padrão não secre
 - `MAX_RAG_RANK`: maior valor aceito para `rank`.
 - `MAX_FRAGMENT_SIZE`: maior tamanho aceito para cada fragmento.
 - `MAX_SPRINTS_PER_REQUEST`: maior quantidade de sprints consultáveis em uma requisição.
+- `MAX_PAYLOAD_BYTES`: maior tamanho de payload HTTP aceito.
 
 Valores finais devem ser definidos na implementação e documentados no `README.md`.

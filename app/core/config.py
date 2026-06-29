@@ -26,6 +26,9 @@ class Configuracoes(BaseModel):
     auth_enabled: bool = True
     auth_token: str | None = None
 
+    cors_allowed_origins: tuple[str, ...] = Field(default_factory=tuple)
+    max_payload_bytes: int = Field(default=1_048_576, ge=1, le=10_485_760)
+
     data_dir: Path = Field(default=Path("data"))
     max_rag_rank: int = Field(default=10, ge=1, le=100)
     max_fragment_size: int = Field(default=3000, ge=1, le=100_000)
@@ -43,6 +46,21 @@ class Configuracoes(BaseModel):
         """Converte segredos vazios em ausentes para evitar falsos positivos."""
         if isinstance(valor, str) and not valor.strip():
             return None
+        return valor
+
+    @field_validator("cors_allowed_origins", mode="before")
+    @classmethod
+    def normalizar_origens_cors(cls, valor: Any) -> tuple[str, ...]:
+        """Normaliza a lista de origens CORS a partir de string ou coleção."""
+        if valor is None:
+            return ()
+
+        if isinstance(valor, str):
+            return tuple(origem.strip() for origem in valor.split(",") if origem.strip())
+
+        if isinstance(valor, (list, tuple, set)):
+            return tuple(str(origem).strip() for origem in valor if str(origem).strip())
+
         return valor
 
 
@@ -65,6 +83,8 @@ def carregar_configuracoes_do_ambiente() -> Configuracoes:
         log_file_path=_valor_ambiente("LOG_FILE_PATH", "logs/api.json"),
         auth_enabled=_valor_ambiente("AUTH_ENABLED", True),
         auth_token=_valor_ambiente("AUTH_TOKEN"),
+        cors_allowed_origins=_valor_ambiente("CORS_ALLOWED_ORIGINS", ""),
+        max_payload_bytes=_valor_ambiente("MAX_PAYLOAD_BYTES", 1_048_576),
         data_dir=_valor_ambiente("DATA_DIR", "data"),
         max_rag_rank=_valor_ambiente("MAX_RAG_RANK", 10),
         max_fragment_size=_valor_ambiente("MAX_FRAGMENT_SIZE", 3000),

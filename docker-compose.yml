@@ -3,8 +3,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-api-sprints-ia}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FILE_PATH: ${LOG_FILE_PATH:-logs/api.json}
+      AUTH_ENABLED: ${AUTH_ENABLED:-true}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      MAX_PAYLOAD_BYTES: ${MAX_PAYLOAD_BYTES:-1048576}
+      DATA_DIR: ${DATA_DIR:-data}
+      MAX_RAG_RANK: ${MAX_RAG_RANK:-10}
+      MAX_FRAGMENT_SIZE: ${MAX_FRAGMENT_SIZE:-3000}
+      MAX_MESSAGE_LENGTH: ${MAX_MESSAGE_LENGTH:-4000}
+      MAX_SPRINTS_PER_REQUEST: ${MAX_SPRINTS_PER_REQUEST:-20}
     ports:
       - "8000:8000"
     volumes:
       - ./app:/app/app
+      - ./data:/app/data:ro
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,5 +1,7 @@
 # Tarefa 03: Autenticação e segurança base
 
+**Status:** concluída
+
 ## Objetivo
 
 Proteger rotas de negócio e aplicar validações iniciais de segurança.
