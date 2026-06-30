@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ResumoRequest(BaseModel):
-    """Payload inicial da rota de resumos."""
+    """Payload da rota de resumos."""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -36,3 +36,38 @@ class ResumoRequest(BaseModel):
             raise ValueError("Lista de sprints não pode conter valores vazios.")
         return sprints
 
+
+class FonteResumoResponse(BaseModel):
+    """Fonte consultada para gerar a resposta de resumo."""
+
+    sprint: str = Field(min_length=1)
+    origem: str = Field(min_length=1)
+    tipo: str = Field(min_length=1)
+    caminho: str = Field(min_length=1)
+    titulo: str | None = None
+
+
+class ResumoResponse(BaseModel):
+    """Resposta consultiva gerada a partir dos dados de sprint."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "resposta": "A sprint está em andamento. Há tarefas concluídas e pendências relevantes.",
+                "sprints_consultadas": ["sprint-75"],
+                "fontes": [
+                    {
+                        "sprint": "sprint-75",
+                        "origem": "sprint-75.json",
+                        "tipo": "tarefa",
+                        "caminho": "tarefas[0]",
+                        "titulo": "Criar login",
+                    }
+                ],
+            }
+        }
+    )
+
+    resposta: str = Field(min_length=1)
+    sprints_consultadas: list[str]
+    fontes: list[FonteResumoResponse]

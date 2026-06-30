@@ -8,6 +8,7 @@ from app.integrations.vector_store import BancoVetorial, BancoVetorialChromaDB
 from app.services.chunking_service import ServicoChunkingSprint
 from app.services.indexacao_vetorial import ServicoIndexacaoVetorial
 from app.services.rag_service import ServicoRag
+from app.services.resumo_service import ServicoResumos
 from app.services.sprint_loader import CarregadorSprints
 
 
@@ -55,4 +56,16 @@ def obter_servico_rag(
         carregador_sprints=CarregadorSprints(configuracoes.data_dir),
         provedor_embeddings=cliente_openai,
         banco_vetorial=banco_vetorial,
+    )
+
+
+def obter_servico_resumos(
+    configuracoes: Configuracoes = Depends(obter_configuracoes),
+    cliente_openai: ClienteOpenAI = Depends(obter_cliente_openai),
+) -> ServicoResumos:
+    """Monta serviço de resumos com dependências reais."""
+    return ServicoResumos(
+        configuracoes=configuracoes,
+        carregador_sprints=CarregadorSprints(configuracoes.data_dir),
+        provedor_llm=cliente_openai,
     )

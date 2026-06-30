@@ -41,6 +41,9 @@ O método `gerar_resposta` usa a Responses API do SDK oficial. A chamada recebe:
 Essa separação reduz risco de prompt injection e evita que dados das sprints ou
 mensagens do usuário sobrescrevam instruções internas.
 
+A rota `POST /v1/resumos` usa esse método por meio de `ServicoResumos`, sempre
+com contexto carregado de `data/` e fontes rastreáveis na resposta.
+
 ## Embeddings
 
 O método `gerar_embedding` usa `embeddings.create` com

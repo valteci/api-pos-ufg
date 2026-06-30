@@ -49,7 +49,10 @@ Resposta prevista:
   "fontes": [
     {
       "sprint": "sprint-75",
-      "origem": "sprint-75.json"
+      "origem": "sprint-75.json",
+      "tipo": "tarefa",
+      "caminho": "tarefas[0]",
+      "titulo": "Criar login"
     }
   ]
 }
@@ -64,7 +67,6 @@ Status previstos:
 - `422 Unprocessable Entity`: payload inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI.
 - `504 Gateway Timeout`: timeout em integração externa.
-- `501 Not Implemented`: contrato protegido disponível antes da implementação funcional.
 
 ## `POST /v1/rag`
 

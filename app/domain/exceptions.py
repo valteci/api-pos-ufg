@@ -226,3 +226,19 @@ class ConsultaRagInvalidaError(ErroDeDominio):
             codigo="consulta_rag_invalida",
             detalhes=detalhes,
         )
+
+
+class ConsultaResumoInvalidaError(ErroDeDominio):
+    """Erro para parâmetros inválidos na rota de resumos."""
+
+    def __init__(self, mensagem: str, *, campo: str, limite: int | None = None) -> None:
+        """Cria erro de validação da consulta de resumo."""
+        detalhes: dict[str, Any] = {"campo": campo}
+        if limite is not None:
+            detalhes["limite"] = limite
+
+        super().__init__(
+            mensagem,
+            codigo="consulta_resumo_invalida",
+            detalhes=detalhes,
+        )

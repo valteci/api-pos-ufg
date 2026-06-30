@@ -14,8 +14,7 @@ O token real deve vir exclusivamente de `AUTH_TOKEN`. Não deve existir token ha
 
 A implementação atual aplica autenticação no router versionado `/v1`.
 `POST /v1/rag` já executa recuperação de fragmentos sobre o índice vetorial e
-`POST /v1/resumos` segue protegida, retornando `501 Not Implemented` até a
-implementação funcional de resumos.
+`POST /v1/resumos` já gera respostas consultivas com base nos dados de sprint.
 
 Falhas de autenticação retornam `401 Unauthorized` com `WWW-Authenticate:
 Bearer`. O valor recebido no header `Authorization` não é retornado ao cliente

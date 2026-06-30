@@ -7,8 +7,8 @@ Nesta etapa a aplicação contém a base FastAPI, carregamento validado de arqui
 de sprint, segurança inicial por Bearer token, wrapper interno para OpenAI e
 infraestrutura de chunking/indexação vetorial com ChromaDB. A rota `/v1/rag`
 recupera fragmentos relevantes das sprints indexadas. A rota `/v1/resumos`
-segue protegida, mas ainda retorna `501 Not Implemented` até a tarefa funcional
-de resumos ser concluída.
+gera respostas consultivas e resumos objetivos com base nos dados carregados de
+`data/`.
 
 ## Configurar ambiente
 
@@ -89,6 +89,26 @@ curl -X POST http://localhost:8000/v1/rag \
 Quando `sprints` vier vazia, a API consulta todas as sprints disponíveis em
 `data/`. A resposta retorna até `rank` fragmentos, cada um limitado por
 `tamanho_fragmento`, com `score`, `sprint`, `origem` e metadados de rastreio.
+
+## Resumos
+
+A rota de resumos responde perguntas consultivas usando os dados normalizados de
+sprints, tarefas e subtarefas:
+
+```bash
+curl -X POST http://localhost:8000/v1/resumos \
+  -H "Authorization: Bearer <token-de-acesso>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pergunta": "Como está o andamento da Sprint 75?",
+    "sprints": ["Sprint 75"]
+  }'
+```
+
+Quando `sprints` vier vazia, a API tenta identificar sprints mencionadas na
+pergunta. Se não encontrar menção clara, consulta todas as sprints disponíveis
+dentro do limite configurado. A resposta traz `resposta`, `sprints_consultadas`
+e `fontes` rastreáveis.
 
 ## Executar com Docker Compose
 

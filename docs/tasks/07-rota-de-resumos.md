@@ -1,5 +1,7 @@
 # Tarefa 07: Rota de resumos
 
+**Status:** concluída
+
 ## Objetivo
 
 Implementar `POST /v1/resumos` para responder perguntas e gerar resumos sobre sprints, tarefas e subtarefas.
