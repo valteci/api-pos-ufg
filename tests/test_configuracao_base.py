@@ -34,6 +34,9 @@ class ConfiguracaoBaseTestCase(unittest.TestCase):
             "APP_NAME": "api-teste",
             "AUTH_TOKEN": "",
             "MAX_RAG_RANK": "5",
+            "VECTOR_DB_URL": "http://chromadb:8000",
+            "VECTOR_DB_COLLECTION": "sprints-teste",
+            "EMBEDDINGS_ENABLED": "false",
         }
 
         with patch.dict(os.environ, ambiente, clear=True):
@@ -42,6 +45,9 @@ class ConfiguracaoBaseTestCase(unittest.TestCase):
         self.assertEqual(configuracoes.app_env, "test")
         self.assertEqual(configuracoes.app_name, "api-teste")
         self.assertEqual(configuracoes.max_rag_rank, 5)
+        self.assertEqual(configuracoes.vector_db_url, "http://chromadb:8000")
+        self.assertEqual(configuracoes.vector_db_collection, "sprints-teste")
+        self.assertFalse(configuracoes.embeddings_enabled)
         self.assertIsNone(configuracoes.auth_token)
 
     def test_healthcheck_esta_registrado_na_aplicacao(self) -> None:

@@ -1,5 +1,7 @@
 # Tarefa 05: Chunking e indexação vetorial
 
+**Status:** concluída
+
 ## Objetivo
 
 Transformar dados de sprints em fragmentos indexáveis por embeddings.

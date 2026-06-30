@@ -40,6 +40,10 @@ class Configuracoes(BaseModel):
     openai_embedding_model: str | None = None
     openai_timeout_seconds: float = Field(default=30.0, gt=0)
 
+    vector_db_url: str = Field(default="http://localhost:8001", min_length=1)
+    vector_db_collection: str = Field(default="sprints", min_length=1)
+    embeddings_enabled: bool = True
+
     @field_validator("auth_token", "openai_api_key", mode="before")
     @classmethod
     def normalizar_segredo_vazio(cls, valor: Any) -> Any:
@@ -94,6 +98,9 @@ def carregar_configuracoes_do_ambiente() -> Configuracoes:
         openai_llm_model=_valor_ambiente("OPENAI_LLM_MODEL"),
         openai_embedding_model=_valor_ambiente("OPENAI_EMBEDDING_MODEL"),
         openai_timeout_seconds=_valor_ambiente("OPENAI_TIMEOUT_SECONDS", 30.0),
+        vector_db_url=_valor_ambiente("VECTOR_DB_URL", "http://localhost:8001"),
+        vector_db_collection=_valor_ambiente("VECTOR_DB_COLLECTION", "sprints"),
+        embeddings_enabled=_valor_ambiente("EMBEDDINGS_ENABLED", True),
     )
 
 

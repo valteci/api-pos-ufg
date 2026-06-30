@@ -18,6 +18,9 @@ services:
       OPENAI_LLM_MODEL: ${OPENAI_LLM_MODEL:?OPENAI_LLM_MODEL deve ser configurado no .env}
       OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:?OPENAI_EMBEDDING_MODEL deve ser configurado no .env}
       OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-30}
+      VECTOR_DB_URL: ${VECTOR_DB_URL:-http://chromadb:8000}
+      VECTOR_DB_COLLECTION: ${VECTOR_DB_COLLECTION:-sprints}
+      EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-true}
       DATA_DIR: ${DATA_DIR:-data}
       MAX_RAG_RANK: ${MAX_RAG_RANK:-10}
       MAX_FRAGMENT_SIZE: ${MAX_FRAGMENT_SIZE:-3000}
@@ -28,4 +31,20 @@ services:
     volumes:
       - ./app:/app/app
       - ./data:/app/data:ro
+      - ./logs:/app/logs
+    depends_on:
+      - chromadb
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  chromadb:
+    image: chromadb/chroma:1.5.9
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+
+volumes:
+  chroma-data:

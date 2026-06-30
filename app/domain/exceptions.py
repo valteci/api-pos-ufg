@@ -182,3 +182,31 @@ class OpenAIRespostaInvalidaError(OpenAIIntegracaoError):
             codigo="openai_resposta_invalida",
             operacao=operacao,
         )
+
+
+class ConfiguracaoBancoVetorialError(ErroDeDominio):
+    """Erro para configuração incompleta do banco vetorial."""
+
+    def __init__(self, variavel: str) -> None:
+        """Cria erro de configuração ausente sem expor valores sensíveis."""
+        super().__init__(
+            "Banco vetorial não configurado.",
+            codigo="banco_vetorial_configuracao_invalida",
+            detalhes={"variavel": variavel},
+        )
+
+
+class BancoVetorialError(ErroDeDominio):
+    """Erro sanitizado para falhas do banco vetorial."""
+
+    def __init__(self, *, operacao: str, erro: str | None = None) -> None:
+        """Cria erro genérico de integração vetorial."""
+        detalhes = {"operacao": operacao}
+        if erro:
+            detalhes["erro"] = erro
+
+        super().__init__(
+            "Falha tratada no banco vetorial.",
+            codigo="banco_vetorial_falha_integracao",
+            detalhes=detalhes,
+        )

@@ -6,9 +6,9 @@ O RAG deve recuperar os fragmentos mais relevantes dos dados de sprints a partir
 
 Ele deve ser rápido o suficiente para uso interativo e testável sem chamadas reais à OpenAI ou ao banco vetorial.
 
-## Fluxo de indexação
+## Fluxo de indexação implementado
 
-Fluxo proposto:
+O fluxo atual de indexação fica em `app/services/indexacao_vetorial.py`:
 
 1. Ler os arquivos JSON em `data/`.
 2. Validar e normalizar sprints, tarefas e subtarefas.
@@ -16,7 +16,21 @@ Fluxo proposto:
 4. Quebrar textos em fragmentos com metadados.
 5. Gerar embeddings dos fragmentos.
 6. Gravar embeddings e metadados no ChromaDB.
-7. Registrar versão ou assinatura dos dados indexados.
+7. Registrar assinatura determinística dos dados indexados.
+
+O comando operacional fica em `app/cli/indexar_vetores.py`:
+
+```bash
+python -m app.cli.indexar_vetores --reindexar
+python -m app.cli.indexar_vetores --sprint sprint-75
+python -m app.cli.indexar_vetores --limpar
+```
+
+No ambiente Docker Compose, use:
+
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --reindexar
+```
 
 ## Fluxo de consulta
 
@@ -33,7 +47,7 @@ Fluxo proposto para `POST /v1/rag`:
 9. Retornar fragmentos com score e metadados.
 10. Registrar log estruturado da consulta.
 
-## Chunking
+## Chunking implementado
 
 O chunking deve preservar sentido de negócio. Sempre que possível, uma tarefa e suas subtarefas devem ficar próximas no texto, sem misturar dados de sprints diferentes no mesmo fragmento.
 
@@ -48,22 +62,48 @@ Cada fragmento deve conter metadados:
 - `status`, quando disponível;
 - `responsavel`, quando disponível.
 
+A implementação cria fragmentos de tarefa e de subtarefa. O fragmento da tarefa
+inclui um resumo das subtarefas para preservar contexto de negócio. Subtarefas
+também recebem fragmento próprio, com referência ao título da tarefa pai. Campos
+extras do JSON são serializados em ordem estável para manter indexação
+reproduzível sem quebrar quando exportações trazem campos inesperados.
+
 ## Filtros
 
 Quando `sprints` vier vazia, a busca deve considerar todos os documentos indexados.
 
 Quando `sprints` vier preenchida, o banco vetorial deve filtrar apenas essas sprints. A aplicação não deve recuperar dados de sprints fora do escopo solicitado.
 
+## Banco vetorial
+
+O acesso ao banco vetorial fica em `app/integrations/vector_store.py`.
+
+Implementações disponíveis:
+
+- `BancoVetorialChromaDB`: integração HTTP com ChromaDB para desenvolvimento.
+- `BancoVetorialFake`: fake em memória para testes unitários e serviços sem
+  ChromaDB real.
+
+Variáveis usadas:
+
+```env
+VECTOR_DB_URL=http://chromadb:8000
+VECTOR_DB_COLLECTION=sprints
+EMBEDDINGS_ENABLED=true
+```
+
 ## Reindexação
 
-A implementação deve prever comando ou fluxo documentado para:
+Fluxos disponíveis:
 
-- gerar índice inicial;
-- atualizar índice quando arquivos em `data/` mudarem;
-- limpar índice;
-- reconstruir índice completo.
+- gerar índice inicial: `python -m app.cli.indexar_vetores --reindexar`;
+- atualizar sprint específica: `python -m app.cli.indexar_vetores --sprint sprint-75`;
+- limpar índice: `python -m app.cli.indexar_vetores --limpar`;
+- reconstruir índice completo: `python -m app.cli.indexar_vetores --reindexar`.
 
-Enquanto a reindexação não for automatizada por watcher, o `README.md` deve explicar quando executar o processo manualmente.
+Enquanto não houver watcher automático, a reindexação deve ser executada
+manualmente sempre que arquivos em `data/` forem criados, alterados ou
+removidos.
 
 ## Cache
 

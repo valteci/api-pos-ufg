@@ -4,10 +4,10 @@ API FastAPI para consulta, sumarização e recuperação de informações sobre
 sprints de uma squad de desenvolvimento.
 
 Nesta etapa a aplicação contém a base FastAPI, carregamento validado de arquivos
-de sprint, segurança inicial por Bearer token e wrapper interno para OpenAI. As
-rotas `/v1/rag` e `/v1/resumos` já estão protegidas, mas ainda retornam
-`501 Not Implemented` até as tarefas funcionais de RAG e resumos serem
-concluídas.
+de sprint, segurança inicial por Bearer token, wrapper interno para OpenAI e
+infraestrutura de chunking/indexação vetorial com ChromaDB. As rotas `/v1/rag`
+e `/v1/resumos` já estão protegidas, mas ainda retornam `501 Not Implemented`
+até as tarefas funcionais de RAG e resumos serem concluídas.
 
 ## Configurar ambiente
 
@@ -18,6 +18,8 @@ AUTH_TOKEN=
 OPENAI_API_KEY=
 OPENAI_LLM_MODEL=
 OPENAI_EMBEDDING_MODEL=
+VECTOR_DB_URL=http://chromadb:8000
+VECTOR_DB_COLLECTION=sprints
 ```
 
 O token real deve ficar apenas no `.env` local ou no ambiente de execução. O
@@ -35,6 +37,38 @@ exclusivamente de `OPENAI_API_KEY`. Falhas como rate limit, autenticação
 inválida, indisponibilidade e timeout são convertidas em erros de domínio
 sanitizados, sem expor chave, prompt completo ou mensagem original do SDK.
 
+## Chunking e índice vetorial
+
+O serviço de chunking converte tarefas e subtarefas carregadas de `data/` em
+fragmentos textuais normalizados. Cada fragmento preserva metadados de sprint,
+arquivo de origem, tipo, caminho lógico, status, responsável e títulos
+disponíveis. Fragmentos não misturam sprints diferentes.
+
+A indexação usa `ClienteOpenAI.gerar_embedding` para gerar embeddings dos
+fragmentos e grava os documentos no ChromaDB por meio de uma interface interna
+testável. O índice depende exclusivamente dos arquivos `.json` em `data/`.
+
+Com o ambiente do Compose em execução, gere ou atualize o índice com:
+
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --reindexar
+```
+
+Para reindexar somente uma sprint:
+
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --sprint sprint-75
+```
+
+Para limpar o índice vetorial:
+
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --limpar
+```
+
+Execute a reindexação sempre que arquivos em `data/` forem criados, alterados ou
+removidos.
+
 ## Executar com Docker Compose
 
 ```bash
@@ -46,6 +80,7 @@ A API ficará disponível em:
 - `http://localhost:8000/health`
 - `http://localhost:8000/docs`
 - `http://localhost:8000/openapi.json`
+- ChromaDB HTTP em `http://localhost:8001`
 
 O `GET /health` é público. Rotas sob `/v1` exigem:
 

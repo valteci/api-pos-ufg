@@ -44,8 +44,16 @@ mensagens do usuário sobrescrevam instruções internas.
 ## Embeddings
 
 O método `gerar_embedding` usa `embeddings.create` com
-`OPENAI_EMBEDDING_MODEL` e `encoding_format="float"`. Esse wrapper será usado
-pelas tarefas de chunking, indexação e RAG.
+`OPENAI_EMBEDDING_MODEL` e `encoding_format="float"`. Esse wrapper é usado pela
+indexação vetorial para gerar embeddings dos fragmentos criados a partir de
+`data/`.
+
+A indexação fica em `app/services/indexacao_vetorial.py` e pode ser executada
+manualmente por:
+
+```bash
+python -m app.cli.indexar_vetores --reindexar
+```
 
 ## Timeout
 

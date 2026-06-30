@@ -6,7 +6,7 @@ O ambiente local deve ser executável com Docker Compose e conter as dependênci
 
 ## Serviços previstos
 
-Serviços esperados conforme as decisões arquiteturais:
+Serviços declarados ou previstos conforme as decisões arquiteturais:
 
 - `api`: aplicação FastAPI.
 - `redis`: cache e rate limiting, quando habilitados.
@@ -59,7 +59,9 @@ não têm fallback hardcoded. Valores não secretos usam defaults seguros. O
 diretório `data/` é montado como leitura em `/app/data`, alinhado ao `DATA_DIR`
 padrão.
 
-O `docker-compose.yml` deve ser atualizado quando Redis e ChromaDB forem integrados de fato. Não adicionar serviços sem uso real na aplicação.
+O serviço `chromadb` está declarado para persistir embeddings em volume Docker
+nomeado e fica acessível pela API em `http://chromadb:8000`. Para acesso local
+do host, a porta exposta é `http://localhost:8001`.
 
 ## Swagger e OpenAPI
 
@@ -83,7 +85,8 @@ Comandos finais devem ser confirmados após implementação:
 docker compose up --build
 docker compose down
 poetry install
-poetry run pytest
+poetry run python -m unittest discover -s tests
+docker compose exec api python -m app.cli.indexar_vetores --reindexar
 ```
 
 ## Gitflow
