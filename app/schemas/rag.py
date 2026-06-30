@@ -2,14 +2,16 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.domain.rag import ValorMetadado
+
 
 class RagRequest(BaseModel):
-    """Payload inicial da rota de RAG."""
+    """Payload da rota de RAG."""
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "sprints": ["Sprint 75", "Sprint 76"],
+                "sprints": ["sprint-75", "sprint-76"],
                 "mensagem": "funcionalidade de permissão de usuários no sistema",
                 "rank": 3,
                 "tamanho_fragmento": 1000,
@@ -40,3 +42,45 @@ class RagRequest(BaseModel):
             raise ValueError("Lista de sprints não pode conter valores vazios.")
         return sprints
 
+
+class RagFragmentoResponse(BaseModel):
+    """Fragmento recuperado pelo RAG."""
+
+    conteudo: str
+    score: float
+    sprint: str = Field(min_length=1)
+    origem: str = Field(min_length=1)
+    metadados: dict[str, ValorMetadado] = Field(default_factory=dict)
+
+
+class RagResponse(BaseModel):
+    """Resposta da rota de RAG com fragmentos relevantes."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "mensagem": "funcionalidade de permissão de usuários no sistema",
+                "sprints_consultadas": ["sprint-75", "sprint-76"],
+                "rank": 3,
+                "tamanho_fragmento": 1000,
+                "fragmentos": [
+                    {
+                        "conteudo": "Texto recuperado da tarefa ou subtarefa...",
+                        "score": 0.92,
+                        "sprint": "sprint-75",
+                        "origem": "sprint-75.json",
+                        "metadados": {
+                            "tipo": "tarefa",
+                            "caminho": "tarefas[0]",
+                        },
+                    }
+                ],
+            }
+        }
+    )
+
+    mensagem: str
+    sprints_consultadas: list[str]
+    rank: int
+    tamanho_fragmento: int
+    fragmentos: list[RagFragmentoResponse]

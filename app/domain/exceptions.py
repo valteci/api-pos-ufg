@@ -210,3 +210,19 @@ class BancoVetorialError(ErroDeDominio):
             codigo="banco_vetorial_falha_integracao",
             detalhes=detalhes,
         )
+
+
+class ConsultaRagInvalidaError(ErroDeDominio):
+    """Erro para parâmetros de consulta RAG fora dos limites configurados."""
+
+    def __init__(self, mensagem: str, *, campo: str, limite: int | None = None) -> None:
+        """Cria erro de validação da consulta RAG."""
+        detalhes: dict[str, Any] = {"campo": campo}
+        if limite is not None:
+            detalhes["limite"] = limite
+
+        super().__init__(
+            mensagem,
+            codigo="consulta_rag_invalida",
+            detalhes=detalhes,
+        )

@@ -100,13 +100,18 @@ class AutenticacaoSegurancaTestCase(unittest.TestCase):
     def test_token_valido_permite_alcancar_rota_protegida(self) -> None:
         """Permite chegar à rota protegida quando o Bearer token é válido."""
         cliente = criar_cliente()
+        payload_sprint_inexistente = {**PAYLOAD_RAG, "sprints": ["sprint-inexistente"]}
 
-        resposta = cliente.post("/v1/rag", json=PAYLOAD_RAG, headers=headers_autenticados())
+        resposta = cliente.post(
+            "/v1/rag",
+            json=payload_sprint_inexistente,
+            headers=headers_autenticados(),
+        )
 
-        self.assertEqual(resposta.status_code, 501)
+        self.assertEqual(resposta.status_code, 404)
         self.assertEqual(
             resposta.json()["detail"],
-            "Funcionalidade de RAG ainda não implementada.",
+            "Sprint não encontrada.",
         )
 
     def test_auth_disabled_nao_desativa_autenticacao_em_producao(self) -> None:

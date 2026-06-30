@@ -12,11 +12,10 @@ Authorization: Bearer <token-de-acesso>
 
 O token real deve vir exclusivamente de `AUTH_TOKEN`. Não deve existir token hardcoded no código, testes, documentação operacional, `README.md`, `compose` ou arquivos versionados.
 
-A implementação atual aplica autenticação no router versionado `/v1`. As rotas
-`POST /v1/rag` e `POST /v1/resumos` já estão protegidas, embora a regra de
-negócio de RAG e resumo ainda seja implementada nas tarefas seguintes. Com
-token válido, essas rotas retornam `501 Not Implemented` até a implementação
-funcional.
+A implementação atual aplica autenticação no router versionado `/v1`.
+`POST /v1/rag` já executa recuperação de fragmentos sobre o índice vetorial e
+`POST /v1/resumos` segue protegida, retornando `501 Not Implemented` até a
+implementação funcional de resumos.
 
 Falhas de autenticação retornam `401 Unauthorized` com `WWW-Authenticate:
 Bearer`. O valor recebido no header `Authorization` não é retornado ao cliente

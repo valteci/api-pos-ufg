@@ -1,5 +1,7 @@
 # Tarefa 06: Rota de RAG
 
+**Status:** concluída
+
 ## Objetivo
 
 Implementar `POST /v1/rag` para recuperar fragmentos relevantes das sprints.

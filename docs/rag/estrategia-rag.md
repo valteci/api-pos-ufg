@@ -32,9 +32,9 @@ No ambiente Docker Compose, use:
 docker compose exec api python -m app.cli.indexar_vetores --reindexar
 ```
 
-## Fluxo de consulta
+## Fluxo de consulta implementado
 
-Fluxo proposto para `POST /v1/rag`:
+Fluxo atual de `POST /v1/rag`:
 
 1. Validar autenticação.
 2. Validar payload com Pydantic.

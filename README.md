@@ -5,9 +5,10 @@ sprints de uma squad de desenvolvimento.
 
 Nesta etapa a aplicação contém a base FastAPI, carregamento validado de arquivos
 de sprint, segurança inicial por Bearer token, wrapper interno para OpenAI e
-infraestrutura de chunking/indexação vetorial com ChromaDB. As rotas `/v1/rag`
-e `/v1/resumos` já estão protegidas, mas ainda retornam `501 Not Implemented`
-até as tarefas funcionais de RAG e resumos serem concluídas.
+infraestrutura de chunking/indexação vetorial com ChromaDB. A rota `/v1/rag`
+recupera fragmentos relevantes das sprints indexadas. A rota `/v1/resumos`
+segue protegida, mas ainda retorna `501 Not Implemented` até a tarefa funcional
+de resumos ser concluída.
 
 ## Configurar ambiente
 
@@ -68,6 +69,26 @@ docker compose exec api python -m app.cli.indexar_vetores --limpar
 
 Execute a reindexação sempre que arquivos em `data/` forem criados, alterados ou
 removidos.
+
+## Consulta RAG
+
+Depois de gerar o índice vetorial, consulte fragmentos relevantes com:
+
+```bash
+curl -X POST http://localhost:8000/v1/rag \
+  -H "Authorization: Bearer <token-de-acesso>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "sprints": ["Sprint 75", "Sprint 76"],
+    "mensagem": "funcionalidade de permissão de usuários no sistema",
+    "rank": 3,
+    "tamanho_fragmento": 1000
+  }'
+```
+
+Quando `sprints` vier vazia, a API consulta todas as sprints disponíveis em
+`data/`. A resposta retorna até `rank` fragmentos, cada um limitado por
+`tamanho_fragmento`, com `score`, `sprint`, `origem` e metadados de rastreio.
 
 ## Executar com Docker Compose
 

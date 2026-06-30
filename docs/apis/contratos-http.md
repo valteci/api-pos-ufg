@@ -86,7 +86,9 @@ Resposta prevista:
 ```json
 {
   "mensagem": "funcionalidade de permissão de usuários no sistema",
+  "sprints_consultadas": ["sprint-75", "sprint-76"],
   "rank": 3,
+  "tamanho_fragmento": 1000,
   "fragmentos": [
     {
       "conteudo": "Texto recuperado da tarefa ou subtarefa...",
@@ -111,7 +113,6 @@ Status previstos:
 - `422 Unprocessable Entity`: `rank`, `mensagem`, `sprints` ou `tamanho_fragmento` inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI ou no banco vetorial.
 - `504 Gateway Timeout`: timeout em integração externa.
-- `501 Not Implemented`: contrato protegido disponível antes da implementação funcional.
 
 ## Limites recomendados
 
