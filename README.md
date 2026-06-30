@@ -21,6 +21,12 @@ OPENAI_LLM_MODEL=
 OPENAI_EMBEDDING_MODEL=
 VECTOR_DB_URL=http://chromadb:8000
 VECTOR_DB_COLLECTION=sprints
+REDIS_URL=redis://redis:6379/0
+CACHE_ENABLED=true
+CACHE_TTL_SECONDS=300
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=60
+RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
 O token real deve ficar apenas no `.env` local ou no ambiente de execução. O
@@ -37,6 +43,21 @@ Os modelos vêm de `OPENAI_LLM_MODEL` e `OPENAI_EMBEDDING_MODEL`. A chave vem
 exclusivamente de `OPENAI_API_KEY`. Falhas como rate limit, autenticação
 inválida, indisponibilidade e timeout são convertidas em erros de domínio
 sanitizados, sem expor chave, prompt completo ou mensagem original do SDK.
+
+## Cache e rate limiting
+
+Quando `CACHE_ENABLED=true`, consultas repetíveis de `/v1/rag` e `/v1/resumos`
+podem ser atendidas por Redis. As chaves usam hash dos parâmetros normalizados,
+assinatura dos arquivos consultados e versão do índice; a mensagem do usuário e
+o token não aparecem em texto puro. O TTL é definido por `CACHE_TTL_SECONDS`.
+
+Reindexações executadas por `app.cli.indexar_vetores` incrementam a versão do
+índice usada nas chaves, evitando respostas antigas após atualização vetorial.
+Falhas de Redis no cache degradam para execução normal da consulta.
+
+O rate limiting usa Redis por token autenticado, com limite configurado por
+`RATE_LIMIT_MAX_REQUESTS` e `RATE_LIMIT_WINDOW_SECONDS`. Quando o limite é
+excedido, a API retorna `429 Too Many Requests`.
 
 ## Chunking e índice vetorial
 
@@ -122,6 +143,7 @@ A API ficará disponível em:
 - `http://localhost:8000/docs`
 - `http://localhost:8000/openapi.json`
 - ChromaDB HTTP em `http://localhost:8001`
+- Redis em `localhost:6379`
 
 O `GET /health` é público. Rotas sob `/v1` exigem:
 

@@ -44,6 +44,14 @@ class Configuracoes(BaseModel):
     vector_db_collection: str = Field(default="sprints", min_length=1)
     embeddings_enabled: bool = True
 
+    redis_url: str = Field(default="redis://localhost:6379/0", min_length=1)
+    cache_enabled: bool = True
+    cache_ttl_seconds: int = Field(default=300, ge=1, le=86_400)
+    rate_limit_enabled: bool = True
+    rate_limit_max_requests: int = Field(default=60, ge=1, le=10_000)
+    rate_limit_window_seconds: int = Field(default=60, ge=1, le=86_400)
+    rate_limit_fail_open: bool = True
+
     @field_validator("auth_token", "openai_api_key", mode="before")
     @classmethod
     def normalizar_segredo_vazio(cls, valor: Any) -> Any:
@@ -101,6 +109,13 @@ def carregar_configuracoes_do_ambiente() -> Configuracoes:
         vector_db_url=_valor_ambiente("VECTOR_DB_URL", "http://localhost:8001"),
         vector_db_collection=_valor_ambiente("VECTOR_DB_COLLECTION", "sprints"),
         embeddings_enabled=_valor_ambiente("EMBEDDINGS_ENABLED", True),
+        redis_url=_valor_ambiente("REDIS_URL", "redis://localhost:6379/0"),
+        cache_enabled=_valor_ambiente("CACHE_ENABLED", True),
+        cache_ttl_seconds=_valor_ambiente("CACHE_TTL_SECONDS", 300),
+        rate_limit_enabled=_valor_ambiente("RATE_LIMIT_ENABLED", True),
+        rate_limit_max_requests=_valor_ambiente("RATE_LIMIT_MAX_REQUESTS", 60),
+        rate_limit_window_seconds=_valor_ambiente("RATE_LIMIT_WINDOW_SECONDS", 60),
+        rate_limit_fail_open=_valor_ambiente("RATE_LIMIT_FAIL_OPEN", True),
     )
 
 

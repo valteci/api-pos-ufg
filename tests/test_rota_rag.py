@@ -80,6 +80,8 @@ def criar_cliente_com_fakes(
             max_rag_rank=max_rag_rank,
             max_fragment_size=max_fragment_size,
             max_sprints_per_request=max_sprints_per_request,
+            cache_enabled=False,
+            rate_limit_enabled=False,
         )
     )
     app.dependency_overrides[obter_cliente_openai] = lambda: provedor

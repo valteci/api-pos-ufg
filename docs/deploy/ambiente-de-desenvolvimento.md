@@ -36,6 +36,10 @@ OPENAI_TIMEOUT_SECONDS=30
 REDIS_URL=redis://redis:6379/0
 CACHE_ENABLED=true
 CACHE_TTL_SECONDS=300
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=60
+RATE_LIMIT_WINDOW_SECONDS=60
+RATE_LIMIT_FAIL_OPEN=true
 
 VECTOR_DB_URL=http://chromadb:8000
 VECTOR_DB_COLLECTION=sprints
@@ -62,6 +66,12 @@ padrão.
 O serviço `chromadb` está declarado para persistir embeddings em volume Docker
 nomeado e fica acessível pela API em `http://chromadb:8000`. Para acesso local
 do host, a porta exposta é `http://localhost:8001`.
+
+O serviço `redis` está declarado para cache de respostas e rate limiting. Ele
+fica acessível pela API em `redis://redis:6379/0` e pelo host em
+`localhost:6379`. O cache usa TTL configurável e falha de Redis degrada para
+execução normal quando possível. O rate limiting usa token autenticado como
+identidade e pode falhar aberto ou fechado conforme `RATE_LIMIT_FAIL_OPEN`.
 
 ## Swagger e OpenAPI
 

@@ -11,6 +11,7 @@ from app.core.config import Configuracoes
 from app.domain.exceptions import ConsultaResumoInvalidaError, SprintNaoEncontradaError
 from app.domain.sprint import Sprint, Subtarefa, Tarefa
 from app.integrations.openai_client import ProvedorLLM
+from app.services.cache_service import CacheRespostas, CalculadorAssinaturaDados
 from app.services.sprint_loader import CarregadorSprints
 
 logger = logging.getLogger(__name__)
@@ -67,17 +68,29 @@ class ServicoResumos:
         configuracoes: Configuracoes,
         carregador_sprints: CarregadorSprints,
         provedor_llm: ProvedorLLM,
+        cache_respostas: CacheRespostas | None = None,
+        calculador_assinatura: CalculadorAssinaturaDados | None = None,
     ) -> None:
         """Inicializa serviço com dependências testáveis."""
         self.configuracoes = configuracoes
         self.carregador_sprints = carregador_sprints
         self.provedor_llm = provedor_llm
+        self.cache_respostas = cache_respostas
+        self.calculador_assinatura = calculador_assinatura
 
     def gerar_resumo(self, *, pergunta: str, sprints: list[str]) -> ResultadoResumo:
         """Gera resumo ou resposta consultiva com base nos dados carregados."""
         pergunta_normalizada = self._validar_pergunta(pergunta)
         sprints_consultadas = self._resolver_sprints(pergunta_normalizada, sprints)
         self._validar_quantidade_sprints(len(sprints_consultadas))
+        chave_cache = self._criar_chave_cache(
+            pergunta=pergunta_normalizada,
+            sprints=sprints_consultadas,
+        )
+        if chave_cache and self.cache_respostas is not None:
+            valor_cache = self.cache_respostas.obter_json(chave_cache)
+            if valor_cache is not None:
+                return self._resultado_de_cache(valor_cache)
 
         self._registrar_evento(
             logging.INFO,
@@ -120,11 +133,14 @@ class ServicoResumos:
             contexto_truncado=contexto.truncado,
             modelo=resposta_llm.modelo,
         )
-        return ResultadoResumo(
+        resultado = ResultadoResumo(
             resposta=resposta_llm.texto,
             sprints_consultadas=sprints_consultadas,
             fontes=contexto.fontes,
         )
+        if chave_cache and self.cache_respostas is not None:
+            self.cache_respostas.salvar_json(chave_cache, self._resultado_para_cache(resultado))
+        return resultado
 
     def _resolver_sprints(self, pergunta: str, sprints: list[str]) -> list[str]:
         """Resolve escopo explícito, inferido pela pergunta ou completo."""
@@ -146,6 +162,58 @@ class ServicoResumos:
             return mencionadas
 
         return disponiveis
+
+    def _criar_chave_cache(self, *, pergunta: str, sprints: list[str]) -> str | None:
+        """Cria chave de cache para resumo."""
+        if self.cache_respostas is None or self.calculador_assinatura is None:
+            return None
+
+        assinatura = self.calculador_assinatura.assinar_sprints(sprints)
+        return self.cache_respostas.criar_chave(
+            tipo="resumo",
+            assinatura_dados=assinatura,
+            parametros={
+                "pergunta": pergunta,
+                "sprints": sprints,
+            },
+        )
+
+    @staticmethod
+    def _resultado_para_cache(resultado: ResultadoResumo) -> dict[str, Any]:
+        """Serializa resultado de resumo para cache JSON."""
+        return {
+            "fontes": [
+                {
+                    "caminho": fonte.caminho,
+                    "origem": fonte.origem,
+                    "sprint": fonte.sprint,
+                    "tipo": fonte.tipo,
+                    "titulo": fonte.titulo,
+                }
+                for fonte in resultado.fontes
+            ],
+            "resposta": resultado.resposta,
+            "sprints_consultadas": resultado.sprints_consultadas,
+        }
+
+    @staticmethod
+    def _resultado_de_cache(valor: dict[str, Any]) -> ResultadoResumo:
+        """Reconstrói resultado de resumo a partir do cache."""
+        return ResultadoResumo(
+            resposta=str(valor["resposta"]),
+            sprints_consultadas=[str(sprint) for sprint in valor["sprints_consultadas"]],
+            fontes=[
+                FonteResumo(
+                    sprint=str(fonte["sprint"]),
+                    origem=str(fonte["origem"]),
+                    tipo=str(fonte["tipo"]),
+                    caminho=str(fonte["caminho"]),
+                    titulo=str(fonte["titulo"]) if fonte.get("titulo") is not None else None,
+                )
+                for fonte in valor.get("fontes", [])
+                if isinstance(fonte, dict)
+            ],
+        )
 
     def _validar_pergunta(self, pergunta: str) -> str:
         """Valida pergunta usando limites configuráveis."""

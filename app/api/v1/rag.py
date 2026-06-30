@@ -27,6 +27,7 @@ router = APIRouter(tags=["RAG"])
     responses={
         401: {"description": "Token ausente ou inválido."},
         404: {"description": "Sprint solicitada não encontrada."},
+        429: {"description": "Limite de requisições excedido."},
         413: {"description": "Payload acima do limite configurado."},
         422: {"description": "Payload inválido."},
         502: {"description": "Falha tratada em integração externa."},

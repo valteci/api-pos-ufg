@@ -21,6 +21,13 @@ services:
       VECTOR_DB_URL: ${VECTOR_DB_URL:-http://chromadb:8000}
       VECTOR_DB_COLLECTION: ${VECTOR_DB_COLLECTION:-sprints}
       EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-true}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      CACHE_ENABLED: ${CACHE_ENABLED:-true}
+      CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-300}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-60}
+      RATE_LIMIT_WINDOW_SECONDS: ${RATE_LIMIT_WINDOW_SECONDS:-60}
+      RATE_LIMIT_FAIL_OPEN: ${RATE_LIMIT_FAIL_OPEN:-true}
       DATA_DIR: ${DATA_DIR:-data}
       MAX_RAG_RANK: ${MAX_RAG_RANK:-10}
       MAX_FRAGMENT_SIZE: ${MAX_FRAGMENT_SIZE:-3000}
@@ -34,6 +41,7 @@ services:
       - ./logs:/app/logs
     depends_on:
       - chromadb
+      - redis
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   chromadb:
@@ -46,5 +54,14 @@ services:
     volumes:
       - chroma-data:/chroma/chroma
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
 volumes:
   chroma-data:
+  redis-data:

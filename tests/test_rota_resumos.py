@@ -66,6 +66,8 @@ def criar_cliente_com_llm_fake(
             data_dir=data_dir,
             max_message_length=max_message_length,
             max_sprints_per_request=max_sprints_per_request,
+            cache_enabled=False,
+            rate_limit_enabled=False,
         )
     )
     app.dependency_overrides[obter_cliente_openai] = lambda: provedor

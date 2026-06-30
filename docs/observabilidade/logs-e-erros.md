@@ -31,6 +31,9 @@ Devem ser registrados eventos para:
 - JSON inválido;
 - consulta RAG executada;
 - resumo gerado;
+- cache hit e cache miss gravado;
+- invalidação de cache por reindexação;
+- rate limit bloqueado;
 - chamada à OpenAI iniciada e concluída;
 - rate limit da OpenAI;
 - timeout externo;

@@ -76,7 +76,23 @@ chegar aos handlers de negócio.
 
 ## Rate limiting
 
-Para reduzir abuso e custo da OpenAI, a implementação deve prever rate limiting por IP ou token. Redis é a opção recomendada quando o recurso for implementado.
+Para reduzir abuso e custo da OpenAI, a API aplica rate limiting em rotas de
+negócio usando Redis. A identidade padrão é o token autenticado, convertido em
+chave hasheada antes de ser enviado ao Redis.
+
+Variáveis:
+
+```env
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX_REQUESTS=60
+RATE_LIMIT_WINDOW_SECONDS=60
+RATE_LIMIT_FAIL_OPEN=true
+```
+
+Quando o limite é excedido, a API retorna `429 Too Many Requests` com
+`Retry-After`. Se Redis estiver indisponível, `RATE_LIMIT_FAIL_OPEN=true`
+permite degradar sem derrubar a API; use `false` quando a política operacional
+exigir falha fechada.
 
 ## Segredos
 

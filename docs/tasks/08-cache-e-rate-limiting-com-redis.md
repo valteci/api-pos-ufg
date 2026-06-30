@@ -1,5 +1,7 @@
 # Tarefa 08: Cache e rate limiting com Redis
 
+**Status:** concluída
+
 ## Objetivo
 
 Reduzir custo, latência e abuso da API usando Redis quando aplicável.

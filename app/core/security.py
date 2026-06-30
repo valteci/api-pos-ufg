@@ -6,10 +6,12 @@ import secrets
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import Configuracoes, obter_configuracoes
+from app.infrastructure.dependencies import obter_limitador_requisicoes
+from app.services.rate_limit_service import LimitadorRequisicoes
 
 logger = logging.getLogger(__name__)
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -60,14 +62,18 @@ def _erro_nao_autorizado(mensagem: str) -> HTTPException:
 
 
 def exigir_autenticacao(
+    request: Request,
     credenciais: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     configuracoes: Configuracoes = Depends(obter_configuracoes),
+    limitador: LimitadorRequisicoes = Depends(obter_limitador_requisicoes),
 ) -> IdentidadeAutenticada:
     """Exige Bearer token válido para rotas de negócio.
 
     Args:
+        request: Requisição atual, usada para fallback de identidade por IP.
         credenciais: Credenciais extraídas do header `Authorization`.
         configuracoes: Configurações carregadas por ambiente.
+        limitador: Serviço de rate limiting configurado por ambiente.
 
     Returns:
         Identidade autenticada para uso futuro por rotas e serviços.
@@ -77,6 +83,10 @@ def exigir_autenticacao(
             obrigatória não foi configurada no servidor.
     """
     if not _autenticacao_obrigatoria(configuracoes):
+        _aplicar_rate_limit(
+            limitador,
+            identidade=f"desenvolvimento:{request.client.host if request.client else 'desconhecido'}",
+        )
         return IdentidadeAutenticada(metodo="desenvolvimento")
 
     if not configuracoes.auth_token:
@@ -115,5 +125,22 @@ def exigir_autenticacao(
         )
         raise _erro_nao_autorizado("Token de autenticação inválido.")
 
+    _aplicar_rate_limit(limitador, identidade=f"token:{credenciais.credentials}")
     return IdentidadeAutenticada()
 
+
+def _aplicar_rate_limit(limitador: LimitadorRequisicoes, *, identidade: str) -> None:
+    """Aplica rate limiting para identidade autenticada."""
+    resultado = limitador.verificar(identidade)
+    if resultado.permitido:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Limite de requisições excedido. Tente novamente mais tarde.",
+        headers={
+            "Retry-After": str(resultado.janela_segundos),
+            "X-RateLimit-Limit": str(resultado.limite),
+            "X-RateLimit-Remaining": str(resultado.restante),
+        },
+    )

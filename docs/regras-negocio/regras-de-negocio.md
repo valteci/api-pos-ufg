@@ -69,6 +69,17 @@ Regras:
 - Falhas de autenticação devem retornar status HTTP apropriado.
 - Logs de autenticação não devem expor credenciais.
 
+## Regras sobre cache e rate limiting
+
+- Cache de respostas é opcional e usa Redis quando `CACHE_ENABLED=true`.
+- Chaves de cache devem usar hash dos parâmetros, assinatura dos dados e versão do índice.
+- Mensagem do usuário, pergunta e token não podem aparecer em texto puro nas chaves.
+- O TTL do cache deve vir de `CACHE_TTL_SECONDS`.
+- Reindexação deve invalidar respostas cacheadas por versão de índice.
+- Falha de Redis no cache não deve derrubar a API quando for possível executar a consulta normalmente.
+- Rate limiting deve limitar abuso por token autenticado ou identidade equivalente.
+- Excesso de requisições deve retornar `429 Too Many Requests`.
+
 ## Regras sobre erros
 
 - Erros de validação devem retornar `422`.

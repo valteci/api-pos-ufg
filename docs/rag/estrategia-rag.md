@@ -107,17 +107,24 @@ removidos.
 
 ## Cache
 
-Consultas RAG podem usar Redis para cache quando `CACHE_ENABLED=true`.
+Consultas RAG usam Redis para cache quando `CACHE_ENABLED=true`.
 
-A chave de cache deve considerar:
+A chave de cache considera:
 
 - mensagem normalizada;
 - lista de sprints resolvida;
 - `rank`;
 - `tamanho_fragmento`;
-- versão ou assinatura do índice.
+- assinatura dos arquivos de sprint consultados;
+- versão global do índice.
 
-O cache deve ter TTL e não pode retornar resposta incompatível com dados reindexados.
+O valor de chave é um hash SHA-256; a mensagem do usuário não aparece em texto
+puro. O cache tem TTL definido por `CACHE_TTL_SECONDS` e não deve retornar
+resposta incompatível com dados reindexados. Reindexações incrementam a versão
+global usada nas chaves, e mudanças nos arquivos em `data/` alteram a assinatura
+dos dados.
+
+Falha de Redis em cache degrada para execução normal da consulta.
 
 ## Testabilidade
 

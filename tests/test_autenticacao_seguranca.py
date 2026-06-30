@@ -6,7 +6,10 @@ import unittest
 from fastapi.testclient import TestClient
 
 from app.core.config import Configuracoes
+from app.infrastructure.dependencies import obter_limitador_requisicoes
+from app.integrations.redis_client import RedisFake
 from app.main import criar_app
+from app.services.rate_limit_service import LimitadorRequisicoes
 
 VALOR_AUTORIZACAO_TESTE = "valor-ficticio-sem-uso-real"
 VALOR_INVALIDO_TESTE = "valor-invalido-sem-uso-real"
@@ -38,6 +41,8 @@ def criar_cliente(
             auth_token=VALOR_AUTORIZACAO_TESTE,
             cors_allowed_origins=("http://cliente.local",),
             max_payload_bytes=max_payload_bytes,
+            cache_enabled=False,
+            rate_limit_enabled=False,
         )
     )
     return TestClient(app)
@@ -153,6 +158,39 @@ class AutenticacaoSegurancaTestCase(unittest.TestCase):
 
         self.assertEqual(resposta.status_code, 413)
         self.assertIn("Payload excede o limite configurado", resposta.json()["detail"])
+
+    def test_rate_limit_bloqueia_excesso_de_requisicoes_autenticadas(self) -> None:
+        """Bloqueia excesso de requisições por token autenticado."""
+        app = criar_app(
+            Configuracoes(
+                app_env="test",
+                auth_enabled=True,
+                auth_token=VALOR_AUTORIZACAO_TESTE,
+                rate_limit_enabled=True,
+                rate_limit_max_requests=1,
+                rate_limit_window_seconds=60,
+            )
+        )
+        limitador = LimitadorRequisicoes(
+            cliente_redis=RedisFake(),
+            habilitado=True,
+            max_requisicoes=1,
+            janela_segundos=60,
+            falhar_aberto=True,
+        )
+        app.dependency_overrides[obter_limitador_requisicoes] = lambda: limitador
+        cliente = TestClient(app)
+        payload = {**PAYLOAD_RAG, "sprints": ["sprint-inexistente"]}
+
+        primeira = cliente.post("/v1/rag", json=payload, headers=headers_autenticados())
+        segunda = cliente.post("/v1/rag", json=payload, headers=headers_autenticados())
+
+        self.assertEqual(primeira.status_code, 404)
+        self.assertEqual(segunda.status_code, 429)
+        self.assertEqual(
+            segunda.json()["detail"],
+            "Limite de requisições excedido. Tente novamente mais tarde.",
+        )
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from typing import Any
 from app.domain.rag import DocumentoVetorial, FragmentoSprint
 from app.integrations.openai_client import ProvedorEmbeddings
 from app.integrations.vector_store import BancoVetorial
+from app.services.cache_service import CacheRespostas
 from app.services.chunking_service import ServicoChunkingSprint
 from app.services.sprint_loader import CarregadorSprints
 
@@ -36,12 +37,14 @@ class ServicoIndexacaoVetorial:
         servico_chunking: ServicoChunkingSprint,
         provedor_embeddings: ProvedorEmbeddings,
         banco_vetorial: BancoVetorial,
+        cache_respostas: CacheRespostas | None = None,
     ) -> None:
         """Inicializa o serviço com dependências testáveis."""
         self.carregador_sprints = carregador_sprints
         self.servico_chunking = servico_chunking
         self.provedor_embeddings = provedor_embeddings
         self.banco_vetorial = banco_vetorial
+        self.cache_respostas = cache_respostas
 
     def indexar_sprints(
         self,
@@ -64,6 +67,7 @@ class ServicoIndexacaoVetorial:
 
         self.banco_vetorial.remover_por_sprints(nomes_resolvidos)
         resultado = self._persistir_fragmentos(nomes_resolvidos, fragmentos)
+        self._invalidar_cache_por_reindexacao()
 
         self._registrar_evento(
             logging.INFO,
@@ -88,6 +92,7 @@ class ServicoIndexacaoVetorial:
         sprints = [self.carregador_sprints.carregar_sprint(nome) for nome in nomes_resolvidos]
         fragmentos = self.servico_chunking.fragmentar_sprints(sprints)
         resultado = self._persistir_fragmentos(nomes_resolvidos, fragmentos)
+        self._invalidar_cache_por_reindexacao()
 
         self._registrar_evento(
             logging.INFO,
@@ -102,6 +107,7 @@ class ServicoIndexacaoVetorial:
     def limpar_indice(self) -> None:
         """Remove todos os documentos do índice vetorial."""
         self.banco_vetorial.limpar_indice()
+        self._invalidar_cache_por_reindexacao()
         self._registrar_evento(logging.INFO, "indice_vetorial_limpo")
 
     def _persistir_fragmentos(
@@ -153,6 +159,11 @@ class ServicoIndexacaoVetorial:
             hash_indice.update(fragmento.conteudo.encode("utf-8"))
             hash_indice.update(b"\0")
         return hash_indice.hexdigest()
+
+    def _invalidar_cache_por_reindexacao(self) -> None:
+        """Invalida respostas cacheadas quando o índice muda."""
+        if self.cache_respostas is not None:
+            self.cache_respostas.invalidar_por_reindexacao()
 
     @staticmethod
     def _registrar_evento(nivel: int, evento: str, **metadados: Any) -> None:

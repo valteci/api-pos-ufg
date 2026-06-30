@@ -63,6 +63,7 @@ Status previstos:
 - `200 OK`: resumo gerado.
 - `401 Unauthorized`: token ausente ou inválido.
 - `404 Not Found`: sprint solicitada não encontrada.
+- `429 Too Many Requests`: limite de requisições excedido.
 - `413 Payload Too Large`: payload acima do limite configurado.
 - `422 Unprocessable Entity`: payload inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI.
@@ -111,6 +112,7 @@ Status previstos:
 - `200 OK`: fragmentos recuperados.
 - `401 Unauthorized`: token ausente ou inválido.
 - `404 Not Found`: sprint solicitada não encontrada.
+- `429 Too Many Requests`: limite de requisições excedido.
 - `413 Payload Too Large`: payload acima do limite configurado.
 - `422 Unprocessable Entity`: `rank`, `mensagem`, `sprints` ou `tamanho_fragmento` inválido.
 - `502 Bad Gateway`: falha tratada na OpenAI ou no banco vetorial.

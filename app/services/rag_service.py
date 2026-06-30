@@ -10,6 +10,7 @@ from app.domain.exceptions import ConsultaRagInvalidaError, SprintNaoEncontradaE
 from app.domain.rag import ResultadoBuscaVetorial, ValorMetadado
 from app.integrations.openai_client import ProvedorEmbeddings
 from app.integrations.vector_store import BancoVetorial
+from app.services.cache_service import CacheRespostas, CalculadorAssinaturaDados
 from app.services.sprint_loader import CarregadorSprints
 
 logger = logging.getLogger(__name__)
@@ -47,12 +48,16 @@ class ServicoRag:
         carregador_sprints: CarregadorSprints,
         provedor_embeddings: ProvedorEmbeddings,
         banco_vetorial: BancoVetorial,
+        cache_respostas: CacheRespostas | None = None,
+        calculador_assinatura: CalculadorAssinaturaDados | None = None,
     ) -> None:
         """Inicializa serviço com dependências testáveis."""
         self.configuracoes = configuracoes
         self.carregador_sprints = carregador_sprints
         self.provedor_embeddings = provedor_embeddings
         self.banco_vetorial = banco_vetorial
+        self.cache_respostas = cache_respostas
+        self.calculador_assinatura = calculador_assinatura
 
     def consultar(
         self,
@@ -71,6 +76,16 @@ class ServicoRag:
         )
         sprints_consultadas = self._resolver_sprints(sprints)
         self._validar_quantidade_sprints(len(sprints_consultadas))
+        chave_cache = self._criar_chave_cache(
+            mensagem=mensagem_normalizada,
+            sprints=sprints_consultadas,
+            rank=rank,
+            tamanho_fragmento=tamanho_fragmento,
+        )
+        if chave_cache and self.cache_respostas is not None:
+            valor_cache = self.cache_respostas.obter_json(chave_cache)
+            if valor_cache is not None:
+                return self._resultado_de_cache(valor_cache)
 
         self._registrar_evento(
             logging.INFO,
@@ -100,13 +115,16 @@ class ServicoRag:
             tamanho_fragmento=tamanho_fragmento,
             modelo_embedding=embedding.modelo,
         )
-        return ResultadoConsultaRag(
+        resultado = ResultadoConsultaRag(
             mensagem=mensagem_normalizada,
             sprints_consultadas=sprints_consultadas,
             rank=rank,
             tamanho_fragmento=tamanho_fragmento,
             fragmentos=fragmentos,
         )
+        if chave_cache and self.cache_respostas is not None:
+            self.cache_respostas.salvar_json(chave_cache, self._resultado_para_cache(resultado))
+        return resultado
 
     def _resolver_sprints(self, sprints: list[str]) -> list[str]:
         """Resolve escopo de sprints e rejeita identificadores inexistentes."""
@@ -121,6 +139,71 @@ class ServicoRag:
                 raise SprintNaoEncontradaError(sprint)
 
         return solicitadas
+
+    def _criar_chave_cache(
+        self,
+        *,
+        mensagem: str,
+        sprints: list[str],
+        rank: int,
+        tamanho_fragmento: int,
+    ) -> str | None:
+        """Cria chave de cache para consulta RAG."""
+        if self.cache_respostas is None or self.calculador_assinatura is None:
+            return None
+
+        assinatura = self.calculador_assinatura.assinar_sprints(sprints)
+        return self.cache_respostas.criar_chave(
+            tipo="rag",
+            assinatura_dados=assinatura,
+            parametros={
+                "mensagem": mensagem,
+                "rank": rank,
+                "sprints": sprints,
+                "tamanho_fragmento": tamanho_fragmento,
+            },
+        )
+
+    @staticmethod
+    def _resultado_para_cache(resultado: ResultadoConsultaRag) -> dict[str, Any]:
+        """Serializa resultado RAG para cache JSON."""
+        return {
+            "fragmentos": [
+                {
+                    "conteudo": fragmento.conteudo,
+                    "metadados": fragmento.metadados,
+                    "origem": fragmento.origem,
+                    "score": fragmento.score,
+                    "sprint": fragmento.sprint,
+                }
+                for fragmento in resultado.fragmentos
+            ],
+            "mensagem": resultado.mensagem,
+            "rank": resultado.rank,
+            "sprints_consultadas": resultado.sprints_consultadas,
+            "tamanho_fragmento": resultado.tamanho_fragmento,
+        }
+
+    @staticmethod
+    def _resultado_de_cache(valor: dict[str, Any]) -> ResultadoConsultaRag:
+        """Reconstrói resultado RAG a partir do cache."""
+        return ResultadoConsultaRag(
+            mensagem=str(valor["mensagem"]),
+            sprints_consultadas=[str(sprint) for sprint in valor["sprints_consultadas"]],
+            rank=int(valor["rank"]),
+            tamanho_fragmento=int(valor["tamanho_fragmento"]),
+            fragmentos=[
+                FragmentoRag(
+                    conteudo=str(fragmento["conteudo"]),
+                    score=float(fragmento["score"]),
+                    sprint=str(fragmento["sprint"]),
+                    origem=str(fragmento["origem"]),
+                    metadados=dict(fragmento["metadados"]),
+                )
+                for fragmento in valor.get("fragmentos", [])
+                if isinstance(fragmento, dict)
+            ],
+        )
 
     def _validar_mensagem(self, mensagem: str) -> str:
         """Aplica validação de mensagem com limite configurável."""

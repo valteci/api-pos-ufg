@@ -12,6 +12,7 @@ fastapi = "^0.115.6"
 uvicorn = { extras = ["standard"], version = "^0.34.0" }
 openai = "^2.44.0"
 chromadb = "^1.5.9"
+redis = "^8.0.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
