@@ -21,6 +21,8 @@ OPENAI_LLM_MODEL=
 OPENAI_EMBEDDING_MODEL=
 VECTOR_DB_URL=http://chromadb:8000
 VECTOR_DB_COLLECTION=sprints
+EMBEDDINGS_EXPORT_DIR=data/embeddings
+EMBEDDINGS_AUTOLOAD_ENABLED=true
 REDIS_URL=redis://redis:6379/0
 CACHE_ENABLED=true
 CACHE_TTL_SECONDS=300
@@ -90,6 +92,51 @@ docker compose exec api python -m app.cli.indexar_vetores --limpar
 
 Execute a reindexação sempre que arquivos em `data/` forem criados, alterados ou
 removidos.
+
+## Exportar e importar embeddings (data/embeddings)
+
+Gerar embeddings consome a API da OpenAI. Para evitar regerá-los a cada novo
+ambiente, é possível exportar os embeddings já presentes no ChromaDB para
+arquivos versionáveis em `data/embeddings/` e recarregá-los depois.
+
+Exportar os embeddings atuais do ChromaDB para o disco (um arquivo `.json` por
+sprint):
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings
+```
+
+Importar manualmente os embeddings do disco de volta para o ChromaDB (carrega
+apenas quando a coleção está vazia):
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings --importar
+```
+
+Forçar a importação mesmo com a coleção já populada:
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings --importar --forcar
+```
+
+### Carga automática na inicialização
+
+Quando `EMBEDDINGS_AUTOLOAD_ENABLED=true` (default), a API verifica, ao iniciar,
+se há arquivos em `EMBEDDINGS_EXPORT_DIR` (default `data/embeddings`). Se houver
+e a coleção do ChromaDB estiver vazia, os embeddings são carregados
+automaticamente. A operação é idempotente: se a coleção já tiver documentos, a
+carga é ignorada. Falhas de conexão ou arquivos ausentes não impedem a subida
+da API — o RAG apenas fica sem resultados até a indexação ou a carga.
+
+No Compose, o diretório `data/embeddings` é montado com escrita (`rw`), enquanto
+o restante de `data/` permanece somente leitura, preservando os arquivos de
+sprint. O formato de cada arquivo exportado inclui versão, coleção, sprint,
+modelo de embedding, dimensão e a lista de documentos com `id`, `texto`,
+`embedding` e `metadados`. A importação valida estrutura e tipos antes de gravar
+no banco vetorial.
+
+Detalhes adicionais em
+[`docs/rag/exportacao-e-importacao-de-embeddings.md`](docs/rag/exportacao-e-importacao-de-embeddings.md).
 
 ## Consulta RAG
 

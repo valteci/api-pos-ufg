@@ -28,6 +28,14 @@ class BancoVetorial(Protocol):
         """Remove todos os documentos da coleção vetorial."""
         ...
 
+    def contar_documentos(self) -> int:
+        """Retorna a quantidade de documentos atualmente indexados."""
+        ...
+
+    def exportar_documentos(self) -> list[DocumentoVetorial]:
+        """Exporta todos os documentos persistidos com texto, vetor e metadados."""
+        ...
+
     def buscar(
         self,
         embedding: Sequence[float],
@@ -125,6 +133,34 @@ class BancoVetorialChromaDB:
         except Exception as erro:
             raise self._tratar_erro("limpar_indice", erro) from erro
 
+    def contar_documentos(self) -> int:
+        """Retorna a quantidade de documentos na coleção configurada."""
+        try:
+            return int(self._obter_colecao().count())
+        except ConfiguracaoBancoVetorialError:
+            raise
+        except Exception as erro:
+            raise self._tratar_erro("contar_documentos", erro) from erro
+
+    def exportar_documentos(self) -> list[DocumentoVetorial]:
+        """Exporta todos os documentos da coleção com texto, vetor e metadados."""
+        try:
+            colecao = self._obter_colecao()
+            resultado = colecao.get(include=["documents", "embeddings", "metadatas"])
+        except ConfiguracaoBancoVetorialError:
+            raise
+        except Exception as erro:
+            raise self._tratar_erro("exportar_documentos", erro) from erro
+
+        documentos = self._normalizar_exportacao(resultado)
+        self._registrar_evento(
+            logging.INFO,
+            "banco_vetorial_documentos_exportados",
+            quantidade=len(documentos),
+            colecao=self.colecao,
+        )
+        return documentos
+
     def buscar(
         self,
         embedding: Sequence[float],
@@ -196,6 +232,36 @@ class BancoVetorialChromaDB:
             for chave, valor in metadados.items()
             if isinstance(valor, (str, int, float, bool)) and valor != ""
         }
+
+    @staticmethod
+    def _normalizar_exportacao(resultado: Any) -> list[DocumentoVetorial]:
+        """Converte a resposta de `get` do ChromaDB para documentos de domínio."""
+        if not isinstance(resultado, dict):
+            return []
+
+        ids = resultado.get("ids") or []
+        documentos_texto = resultado.get("documents") or []
+        embeddings = resultado.get("embeddings")
+        if embeddings is None:
+            embeddings = []
+        metadados = resultado.get("metadatas") or []
+
+        documentos: list[DocumentoVetorial] = []
+        for indice, documento_id in enumerate(ids):
+            vetor_bruto = embeddings[indice] if indice < len(embeddings) else []
+            vetor = [float(valor) for valor in vetor_bruto] if vetor_bruto is not None else []
+            texto = documentos_texto[indice] if indice < len(documentos_texto) else ""
+            metadado = metadados[indice] if indice < len(metadados) else {}
+            documentos.append(
+                DocumentoVetorial(
+                    id=str(documento_id),
+                    texto=str(texto) if texto is not None else "",
+                    embedding=vetor,
+                    metadados=dict(metadado) if isinstance(metadado, dict) else {},
+                )
+            )
+
+        return documentos
 
     @staticmethod
     def _normalizar_resultados(resultado: Any) -> list[ResultadoBuscaVetorial]:
@@ -279,6 +345,14 @@ class BancoVetorialFake:
         """Remove todos os documentos em memória."""
         self.quantidade_limpezas += 1
         self.documentos.clear()
+
+    def contar_documentos(self) -> int:
+        """Retorna a quantidade de documentos em memória."""
+        return len(self.documentos)
+
+    def exportar_documentos(self) -> list[DocumentoVetorial]:
+        """Exporta os documentos em memória preservando a ordem de inserção."""
+        return list(self.documentos.values())
 
     def buscar(
         self,

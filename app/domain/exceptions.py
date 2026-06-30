@@ -242,3 +242,25 @@ class ConsultaResumoInvalidaError(ErroDeDominio):
             codigo="consulta_resumo_invalida",
             detalhes=detalhes,
         )
+
+
+class PersistenciaEmbeddingsError(ErroDeDominio):
+    """Erro para exportação ou importação inválida de embeddings em disco."""
+
+    def __init__(
+        self,
+        mensagem: str,
+        *,
+        motivo: str,
+        caminho: str | None = None,
+    ) -> None:
+        """Cria erro de persistência de embeddings sem expor conteúdo sensível."""
+        detalhes: dict[str, Any] = {"motivo": motivo}
+        if caminho:
+            detalhes["caminho"] = caminho
+
+        super().__init__(
+            mensagem,
+            codigo="persistencia_embeddings_invalida",
+            detalhes=detalhes,
+        )

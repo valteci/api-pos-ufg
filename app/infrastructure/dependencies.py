@@ -9,6 +9,7 @@ from app.integrations.vector_store import BancoVetorial, BancoVetorialChromaDB
 from app.services.cache_service import CacheRespostas, CalculadorAssinaturaDados
 from app.services.chunking_service import ServicoChunkingSprint
 from app.services.indexacao_vetorial import ServicoIndexacaoVetorial
+from app.services.persistencia_embeddings import ServicoPersistenciaEmbeddings
 from app.services.rag_service import ServicoRag
 from app.services.rate_limit_service import LimitadorRequisicoes
 from app.services.resumo_service import ServicoResumos
@@ -87,6 +88,18 @@ def obter_servico_indexacao_vetorial(
         provedor_embeddings=cliente_openai,
         banco_vetorial=banco_vetorial,
         cache_respostas=cache_respostas,
+    )
+
+
+def obter_servico_persistencia_embeddings(
+    configuracoes: Configuracoes = Depends(obter_configuracoes),
+    banco_vetorial: BancoVetorial = Depends(obter_banco_vetorial),
+) -> ServicoPersistenciaEmbeddings:
+    """Monta serviço de exportação/importação de embeddings em disco."""
+    return ServicoPersistenciaEmbeddings(
+        banco_vetorial=banco_vetorial,
+        diretorio_embeddings=configuracoes.embeddings_export_dir,
+        colecao=configuracoes.vector_db_collection,
     )
 
 

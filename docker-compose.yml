@@ -21,6 +21,8 @@ services:
       VECTOR_DB_URL: ${VECTOR_DB_URL:-http://chromadb:8000}
       VECTOR_DB_COLLECTION: ${VECTOR_DB_COLLECTION:-sprints}
       EMBEDDINGS_ENABLED: ${EMBEDDINGS_ENABLED:-true}
+      EMBEDDINGS_EXPORT_DIR: ${EMBEDDINGS_EXPORT_DIR:-data/embeddings}
+      EMBEDDINGS_AUTOLOAD_ENABLED: ${EMBEDDINGS_AUTOLOAD_ENABLED:-true}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       CACHE_ENABLED: ${CACHE_ENABLED:-true}
       CACHE_TTL_SECONDS: ${CACHE_TTL_SECONDS:-300}
@@ -38,6 +40,7 @@ services:
     volumes:
       - ./app:/app/app
       - ./data:/app/data:ro
+      - ./data/embeddings:/app/data/embeddings
       - ./logs:/app/logs
     depends_on:
       - chromadb
