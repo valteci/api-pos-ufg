@@ -198,12 +198,83 @@ O `GET /health` é público. Rotas sob `/v1` exigem:
 Authorization: Bearer <token-de-acesso>
 ```
 
-## Executar localmente com Poetry
+## Executar localmente com Poetry (sem Docker)
+
+É possível rodar a API diretamente na máquina, sem Docker. Nesse modo, o
+ChromaDB e o Redis precisam estar rodando localmente, pois a API depende deles
+para o índice vetorial, o cache e o rate limiting.
+
+### 1. Instalar dependências da API
 
 ```bash
 poetry install
+```
+
+### 2. Subir o ChromaDB local
+
+O pacote `chromadb` já é instalado como dependência do projeto, então o CLI
+`chroma` fica disponível dentro do ambiente do Poetry. Como a API ocupa a porta
+`8000`, suba o ChromaDB na porta `8001`:
+
+```bash
+poetry run chroma run --host localhost --port 8001 --path ./chroma-data
+```
+
+O diretório `./chroma-data` guarda os dados persistidos do índice vetorial.
+Deixe esse processo rodando em um terminal próprio.
+
+### 3. Subir o Redis local
+
+Instale o Redis pelo gerenciador de pacotes do seu sistema e inicie o servidor:
+
+```bash
+# Debian/Ubuntu
+sudo apt-get install redis-server
+
+# macOS (Homebrew)
+brew install redis
+
+# Iniciar o servidor (porta padrão 6379)
+redis-server
+```
+
+Deixe o Redis rodando em um terminal próprio. Para validar a conexão, use
+`redis-cli ping`, que deve responder `PONG`.
+
+### 4. Ajustar as variáveis de ambiente para apontar para `localhost`
+
+No Compose, as URLs usam os nomes de serviço `chromadb` e `redis`. Rodando
+localmente, ajuste o `.env` para apontar para `localhost` com as portas locais:
+
+```env
+VECTOR_DB_URL=http://localhost:8001
+REDIS_URL=redis://localhost:6379/0
+```
+
+As demais variáveis essenciais (`AUTH_TOKEN`, `OPENAI_API_KEY`,
+`OPENAI_LLM_MODEL`, `OPENAI_EMBEDDING_MODEL`) continuam obrigatórias.
+
+### 5. Subir a API
+
+```bash
 poetry run uvicorn app.main:app --reload
 ```
+
+A API ficará disponível em `http://localhost:8000` (`/health`, `/docs` e
+`/openapi.json`).
+
+### 6. Gerar o índice vetorial local
+
+Com ChromaDB e Redis no ar, gere o índice a partir dos arquivos de `data/`
+(necessário para o `/v1/rag` retornar resultados):
+
+```bash
+poetry run python -m app.cli.indexar_vetores --reindexar
+```
+
+Caso já existam embeddings exportados em `data/embeddings`, eles são carregados
+automaticamente na inicialização quando a coleção do ChromaDB está vazia e
+`EMBEDDINGS_AUTOLOAD_ENABLED=true`.
 
 ## Testes da base atual
 
