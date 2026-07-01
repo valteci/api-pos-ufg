@@ -1,24 +1,69 @@
 # API de sprints com IA
 
 API FastAPI para consulta, sumarização e recuperação de informações sobre
-sprints de uma squad de desenvolvimento.
+sprints de uma squad de desenvolvimento. A aplicação usa os arquivos JSON em
+`data/` como fonte de verdade, valida os dados antes do uso, protege as rotas de
+negócio com Bearer token e integra OpenAI, ChromaDB e Redis para entregar
+resumos e consultas RAG sobre tarefas e subtarefas.
 
-Nesta etapa a aplicação contém a base FastAPI, carregamento validado de arquivos
-de sprint, segurança inicial por Bearer token, wrapper interno para OpenAI e
-infraestrutura de chunking/indexação vetorial com ChromaDB. A rota `/v1/rag`
-recupera fragmentos relevantes das sprints indexadas. A rota `/v1/resumos`
-gera respostas consultivas e resumos objetivos com base nos dados carregados de
-`data/`.
+## Visão geral
 
-## Configurar ambiente
+A API atende a dois fluxos principais:
 
-Crie um `.env` local a partir de `.env.sample` e preencha os valores essenciais:
+- resumos consultivos sobre andamento de sprints, tarefas e subtarefas;
+- recuperação semântica de fragmentos relevantes por RAG.
+
+As respostas são geradas com base nos dados carregados do diretório `data/`.
+Quando não há informação suficiente para responder com segurança, a API informa
+essa limitação em vez de inventar tarefas, responsáveis ou status.
+
+## Recursos principais
+
+- `POST /v1/resumos`: responde perguntas sobre as sprints disponíveis.
+- `POST /v1/rag`: retorna fragmentos semanticamente próximos da mensagem do
+  usuário.
+- `GET /health`: healthcheck público para validação operacional.
+- Autenticação por Bearer token nas rotas de negócio.
+- Integração com OpenAI para LLM e embeddings.
+- Índice vetorial em ChromaDB, derivado exclusivamente dos JSONs em `data/`.
+- Cache e rate limiting com Redis.
+- Logs estruturados em JSON para `stdout` e `logs/api.json`.
+- Documentação automática via Swagger UI e OpenAPI.
+
+## Estrutura do projeto
+
+```text
+.
+├── app/                    # Aplicação FastAPI, serviços, schemas e integrações
+├── data/                   # Arquivos JSON das sprints e embeddings exportados
+├── docs/                   # Documentação técnica por tema
+├── logs/                   # Arquivos de log estruturado
+├── tests/                  # Testes automatizados e fixtures
+├── docker-compose.yml      # Ambiente local com API, Redis e ChromaDB
+├── Dockerfile
+└── README.md
+```
+
+O diretório `data/` é a única origem dos dados de sprint usados pela IA. Cada
+arquivo `.json` representa uma sprint, e o nome do arquivo sem extensão é usado
+como identificador.
+
+## Configuração
+
+Crie um `.env` local a partir de `.env.sample`:
+
+```bash
+cp .env.sample .env
+```
+
+Preencha os valores sensíveis no `.env` local. Eles não devem ser versionados,
+registrados em logs nem expostos em respostas da API.
 
 ```env
 AUTH_TOKEN=
 OPENAI_API_KEY=
 OPENAI_LLM_MODEL=
-OPENAI_EMBEDDING_MODEL=
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 VECTOR_DB_URL=http://chromadb:8000
 VECTOR_DB_COLLECTION=sprints
 EMBEDDINGS_EXPORT_DIR=data/embeddings
@@ -31,116 +76,105 @@ RATE_LIMIT_MAX_REQUESTS=60
 RATE_LIMIT_WINDOW_SECONDS=60
 ```
 
-O token real deve ficar apenas no `.env` local ou no ambiente de execução. O
-Compose carrega esse arquivo e repassa as variáveis para o container da API.
+Também estão disponíveis configurações de ambiente, CORS, limites de payload,
+limites de RAG e caminhos de dados. Consulte `.env.sample` para a lista
+completa.
 
-## Integração com OpenAI
+## Execução com Docker Compose
 
-A integração usa o pacote oficial `openai` em uma camada própria:
-
-- `ClienteOpenAI.gerar_resposta`: usa a Responses API para LLM;
-- `ClienteOpenAI.gerar_embedding`: usa a API de embeddings para RAG.
-
-Os modelos vêm de `OPENAI_LLM_MODEL` e `OPENAI_EMBEDDING_MODEL`. A chave vem
-exclusivamente de `OPENAI_API_KEY`. Falhas como rate limit, autenticação
-inválida, indisponibilidade e timeout são convertidas em erros de domínio
-sanitizados, sem expor chave, prompt completo ou mensagem original do SDK.
-
-## Cache e rate limiting
-
-Quando `CACHE_ENABLED=true`, consultas repetíveis de `/v1/rag` e `/v1/resumos`
-podem ser atendidas por Redis. As chaves usam hash dos parâmetros normalizados,
-assinatura dos arquivos consultados e versão do índice; a mensagem do usuário e
-o token não aparecem em texto puro. O TTL é definido por `CACHE_TTL_SECONDS`.
-
-Reindexações executadas por `app.cli.indexar_vetores` incrementam a versão do
-índice usada nas chaves, evitando respostas antigas após atualização vetorial.
-Falhas de Redis no cache degradam para execução normal da consulta.
-
-O rate limiting usa Redis por token autenticado, com limite configurado por
-`RATE_LIMIT_MAX_REQUESTS` e `RATE_LIMIT_WINDOW_SECONDS`. Quando o limite é
-excedido, a API retorna `429 Too Many Requests`.
-
-## Chunking e índice vetorial
-
-O serviço de chunking converte tarefas e subtarefas carregadas de `data/` em
-fragmentos textuais normalizados. Cada fragmento preserva metadados de sprint,
-arquivo de origem, tipo, caminho lógico, status, responsável e títulos
-disponíveis. Fragmentos não misturam sprints diferentes.
-
-A indexação usa `ClienteOpenAI.gerar_embedding` para gerar embeddings dos
-fragmentos e grava os documentos no ChromaDB por meio de uma interface interna
-testável. O índice depende exclusivamente dos arquivos `.json` em `data/`.
-
-Com o ambiente do Compose em execução, gere ou atualize o índice com:
+Suba o ambiente local com:
 
 ```bash
-docker compose exec api python -m app.cli.indexar_vetores --reindexar
+docker compose up --build
 ```
 
-Para reindexar somente uma sprint:
+A API ficará disponível em:
+
+- `http://localhost:8000/health`
+- `http://localhost:8000/docs`
+- `http://localhost:8000/openapi.json`
+
+Serviços auxiliares:
+
+- ChromaDB HTTP em `http://localhost:8001`
+- Redis em `localhost:6379`
+
+Para derrubar o ambiente:
 
 ```bash
-docker compose exec api python -m app.cli.indexar_vetores --sprint sprint-75
+docker compose down
 ```
 
-Para limpar o índice vetorial:
+## Execução local com Poetry
+
+Instale as dependências:
 
 ```bash
-docker compose exec api python -m app.cli.indexar_vetores --limpar
+poetry install
 ```
 
-Execute a reindexação sempre que arquivos em `data/` forem criados, alterados ou
-removidos.
-
-## Exportar e importar embeddings (data/embeddings)
-
-Gerar embeddings consome a API da OpenAI. Para evitar regerá-los a cada novo
-ambiente, é possível exportar os embeddings já presentes no ChromaDB para
-arquivos versionáveis em `data/embeddings/` e recarregá-los depois.
-
-Exportar os embeddings atuais do ChromaDB para o disco (um arquivo `.json` por
-sprint):
+Suba o ChromaDB em um terminal próprio:
 
 ```bash
-docker compose exec api python -m app.cli.exportar_embeddings
+poetry run chroma run --host localhost --port 8001 --path ./chroma-data
 ```
 
-Importar manualmente os embeddings do disco de volta para o ChromaDB (carrega
-apenas quando a coleção está vazia):
+Suba o Redis localmente na porta padrão `6379` e ajuste o `.env`:
+
+```env
+VECTOR_DB_URL=http://localhost:8001
+REDIS_URL=redis://localhost:6379/0
+```
+
+Inicie a API:
 
 ```bash
-docker compose exec api python -m app.cli.exportar_embeddings --importar
+poetry run uvicorn app.main:app --reload
 ```
 
-Forçar a importação mesmo com a coleção já populada:
+A aplicação ficará disponível em `http://localhost:8000`.
 
-```bash
-docker compose exec api python -m app.cli.exportar_embeddings --importar --forcar
+## Autenticação
+
+O healthcheck é público. Todas as rotas sob `/v1` exigem o token configurado em
+`AUTH_TOKEN`:
+
+```http
+Authorization: Bearer <token-de-acesso>
 ```
 
-### Carga automática na inicialização
+Falhas de autenticação retornam status HTTP apropriado sem expor o token
+recebido.
 
-Quando `EMBEDDINGS_AUTOLOAD_ENABLED=true` (default), a API verifica, ao iniciar,
-se há arquivos em `EMBEDDINGS_EXPORT_DIR` (default `data/embeddings`). Se houver
-e a coleção do ChromaDB estiver vazia, os embeddings são carregados
-automaticamente. A operação é idempotente: se a coleção já tiver documentos, a
-carga é ignorada. Falhas de conexão ou arquivos ausentes não impedem a subida
-da API — o RAG apenas fica sem resultados até a indexação ou a carga.
+## Swagger e OpenAPI
 
-No Compose, o diretório `data/embeddings` é montado com escrita (`rw`), enquanto
-o restante de `data/` permanece somente leitura, preservando os arquivos de
-sprint. O formato de cada arquivo exportado inclui versão, coleção, sprint,
-modelo de embedding, dimensão e a lista de documentos com `id`, `texto`,
-`embedding` e `metadados`. A importação valida estrutura e tipos antes de gravar
-no banco vetorial.
+Com a API em execução, acesse:
 
-Detalhes adicionais em
-[`docs/rag/exportacao-e-importacao-de-embeddings.md`](docs/rag/exportacao-e-importacao-de-embeddings.md).
+- Swagger UI: `http://localhost:8000/docs`
+- Documento OpenAPI: `http://localhost:8000/openapi.json`
+
+Os schemas Pydantic alimentam a documentação automática das rotas, requests,
+responses e validações.
+
+## Dados das sprints
+
+Os arquivos em `data/` devem estar em JSON válido. A aplicação valida
+existência, formato e conteúdo mínimo antes de usar os dados em resumos ou RAG.
+
+O carregamento trata:
+
+- sprint inexistente;
+- JSON inválido;
+- sprint vazia;
+- tarefas sem subtarefas;
+- subtarefas ausentes, nulas ou vazias;
+- campos inesperados sem interromper a API desnecessariamente.
+
+O caminho do diretório pode ser alterado por `DATA_DIR`.
 
 ## Consulta RAG
 
-Depois de gerar o índice vetorial, consulte fragmentos relevantes com:
+Depois que o índice vetorial estiver populado, use:
 
 ```bash
 curl -X POST http://localhost:8000/v1/rag \
@@ -154,13 +188,13 @@ curl -X POST http://localhost:8000/v1/rag \
   }'
 ```
 
-Quando `sprints` vier vazia, a API consulta todas as sprints disponíveis em
-`data/`. A resposta retorna até `rank` fragmentos, cada um limitado por
-`tamanho_fragmento`, com `score`, `sprint`, `origem` e metadados de rastreio.
+Quando `sprints` vem vazia, a consulta considera todas as sprints disponíveis
+dentro dos limites configurados. `rank` define a quantidade máxima de fragmentos
+retornados, e `tamanho_fragmento` controla o tamanho de cada fragmento.
 
 ## Resumos
 
-A rota de resumos responde perguntas consultivas usando os dados normalizados de
+A rota de resumos recebe uma pergunta e consulta os dados normalizados de
 sprints, tarefas e subtarefas:
 
 ```bash
@@ -173,126 +207,158 @@ curl -X POST http://localhost:8000/v1/resumos \
   }'
 ```
 
-Quando `sprints` vier vazia, a API tenta identificar sprints mencionadas na
-pergunta. Se não encontrar menção clara, consulta todas as sprints disponíveis
-dentro do limite configurado. A resposta traz `resposta`, `sprints_consultadas`
-e `fontes` rastreáveis.
+Quando `sprints` vem vazia, a API tenta identificar menções a sprints na
+pergunta. Se não houver menção clara, consulta as sprints disponíveis dentro do
+limite configurado. A resposta inclui a resposta sintetizada, as sprints
+consultadas e fontes rastreáveis.
 
-## Executar com Docker Compose
+## Índice vetorial
 
-```bash
-docker compose up --build
-```
+O chunking converte tarefas e subtarefas em fragmentos textuais normalizados com
+metadados de sprint, arquivo de origem, tipo, caminho lógico, status,
+responsável e títulos disponíveis. Fragmentos não misturam sprints diferentes.
 
-A API ficará disponível em:
-
-- `http://localhost:8000/health`
-- `http://localhost:8000/docs`
-- `http://localhost:8000/openapi.json`
-- ChromaDB HTTP em `http://localhost:8001`
-- Redis em `localhost:6379`
-
-O `GET /health` é público. Rotas sob `/v1` exigem:
-
-```http
-Authorization: Bearer <token-de-acesso>
-```
-
-## Executar localmente com Poetry (sem Docker)
-
-É possível rodar a API diretamente na máquina, sem Docker. Nesse modo, o
-ChromaDB e o Redis precisam estar rodando localmente, pois a API depende deles
-para o índice vetorial, o cache e o rate limiting.
-
-### 1. Instalar dependências da API
+A indexação gera embeddings com OpenAI e grava os documentos no ChromaDB por
+meio de uma camada interna testável. Gere ou atualize o índice com:
 
 ```bash
-poetry install
+docker compose exec api python -m app.cli.indexar_vetores --reindexar
 ```
 
-### 2. Subir o ChromaDB local
-
-O pacote `chromadb` já é instalado como dependência do projeto, então o CLI
-`chroma` fica disponível dentro do ambiente do Poetry. Como a API ocupa a porta
-`8000`, suba o ChromaDB na porta `8001`:
-
-```bash
-poetry run chroma run --host localhost --port 8001 --path ./chroma-data
-```
-
-O diretório `./chroma-data` guarda os dados persistidos do índice vetorial.
-Deixe esse processo rodando em um terminal próprio.
-
-### 3. Subir o Redis local
-
-Instale o Redis pelo gerenciador de pacotes do seu sistema e inicie o servidor:
-
-```bash
-# Debian/Ubuntu
-sudo apt-get install redis-server
-
-# macOS (Homebrew)
-brew install redis
-
-# Iniciar o servidor (porta padrão 6379)
-redis-server
-```
-
-Deixe o Redis rodando em um terminal próprio. Para validar a conexão, use
-`redis-cli ping`, que deve responder `PONG`.
-
-### 4. Ajustar as variáveis de ambiente para apontar para `localhost`
-
-No Compose, as URLs usam os nomes de serviço `chromadb` e `redis`. Rodando
-localmente, ajuste o `.env` para apontar para `localhost` com as portas locais:
-
-```env
-VECTOR_DB_URL=http://localhost:8001
-REDIS_URL=redis://localhost:6379/0
-```
-
-As demais variáveis essenciais (`AUTH_TOKEN`, `OPENAI_API_KEY`,
-`OPENAI_LLM_MODEL`, `OPENAI_EMBEDDING_MODEL`) continuam obrigatórias.
-
-### 5. Subir a API
-
-```bash
-poetry run uvicorn app.main:app --reload
-```
-
-A API ficará disponível em `http://localhost:8000` (`/health`, `/docs` e
-`/openapi.json`).
-
-### 6. Gerar o índice vetorial local
-
-Com ChromaDB e Redis no ar, gere o índice a partir dos arquivos de `data/`
-(necessário para o `/v1/rag` retornar resultados):
+No ambiente local sem Docker, use:
 
 ```bash
 poetry run python -m app.cli.indexar_vetores --reindexar
 ```
 
-Caso já existam embeddings exportados em `data/embeddings`, eles são carregados
-automaticamente na inicialização quando a coleção do ChromaDB está vazia e
-`EMBEDDINGS_AUTOLOAD_ENABLED=true`.
+Para reindexar uma sprint específica:
 
-## Testes da base atual
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --sprint sprint-75
+```
 
-Enquanto a suíte Pytest completa ainda não é adicionada ao projeto, os testes
-iniciais podem ser executados com a biblioteca padrão do Python:
+Para limpar o índice:
+
+```bash
+docker compose exec api python -m app.cli.indexar_vetores --limpar
+```
+
+Execute a reindexação sempre que arquivos em `data/` forem criados, alterados ou
+removidos.
+
+## Exportação e importação de embeddings
+
+Embeddings podem ser exportados do ChromaDB para `data/embeddings/`, evitando
+novo consumo da API da OpenAI em ambientes já conhecidos.
+
+Exportar:
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings
+```
+
+Importar quando a coleção estiver vazia:
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings --importar
+```
+
+Forçar importação:
+
+```bash
+docker compose exec api python -m app.cli.exportar_embeddings --importar --forcar
+```
+
+Com `EMBEDDINGS_AUTOLOAD_ENABLED=true`, a API carrega automaticamente os
+embeddings exportados quando o ChromaDB inicia com a coleção vazia. O formato
+exportado inclui versão, coleção, sprint, modelo, dimensão, documentos,
+embeddings e metadados.
+
+Detalhes:
+[`docs/rag/exportacao-e-importacao-de-embeddings.md`](docs/rag/exportacao-e-importacao-de-embeddings.md).
+
+## Integração com OpenAI
+
+A integração fica encapsulada em `app/integrations/openai_client.py`:
+
+- `ClienteOpenAI.gerar_resposta`: usa a Responses API para respostas e resumos;
+- `ClienteOpenAI.gerar_embedding`: usa embeddings para indexação e RAG.
+
+Os modelos são configurados por `OPENAI_LLM_MODEL` e
+`OPENAI_EMBEDDING_MODEL`. A chave vem exclusivamente de `OPENAI_API_KEY`.
+Timeout, rate limit, autenticação inválida e indisponibilidade são convertidos
+em erros de domínio sanitizados.
+
+Os prompts separam instruções internas, contexto recuperado e mensagem do
+usuário para reduzir risco de prompt injection.
+
+## Cache e rate limiting
+
+Quando `CACHE_ENABLED=true`, respostas repetíveis de `/v1/rag` e `/v1/resumos`
+podem ser atendidas por Redis. As chaves usam hash dos parâmetros normalizados,
+assinatura dos arquivos consultados e versão do índice; mensagens de usuário e
+tokens não ficam em texto puro.
+
+O TTL é definido por `CACHE_TTL_SECONDS`. Reindexações incrementam a versão do
+índice usada nas chaves, evitando retorno de respostas antigas após atualização
+vetorial.
+
+O rate limiting usa Redis por token autenticado, com limite configurado por
+`RATE_LIMIT_MAX_REQUESTS` e `RATE_LIMIT_WINDOW_SECONDS`. Ao exceder o limite, a
+API retorna `429 Too Many Requests`.
+
+## Logs e erros
+
+Os logs estruturados são enviados para `stdout` e para o arquivo configurado em
+`LOG_FILE_PATH`, por padrão `logs/api.json`. Cada linha é registrada em formato
+JSON, com contexto suficiente para diagnóstico sem incluir segredos.
+
+Erros de validação, autenticação, dados inválidos, cache, Redis, ChromaDB e
+OpenAI são tratados com respostas HTTP apropriadas e mensagens em português.
+
+## Testes
+
+A suíte automatizada fica em `tests/` e pode ser executada com:
 
 ```bash
 poetry run python -m unittest discover -s tests
 ```
 
-No container da API, monte `tests/` quando precisar executar a suíte na imagem:
+No container da API:
 
 ```bash
 docker compose run --rm -T -v ./tests:/app/tests:ro api python -m unittest discover -s tests
 ```
 
-## Dados das sprints
+Os testes cobrem carregamento de sprints, autenticação, segurança, integração
+OpenAI por mocks, cache, rate limiting, chunking, indexação vetorial,
+persistência de embeddings, rota RAG e rota de resumos.
 
-Os arquivos `.json` em `data/` representam as sprints disponíveis. O nome do
-arquivo sem `.json` é usado como identificador da sprint. O diretório é
-configurado por `DATA_DIR`, com default seguro `data`.
+## Documentação complementar
+
+A documentação técnica fica em `docs/`:
+
+- [`docs/apis/contratos-http.md`](docs/apis/contratos-http.md)
+- [`docs/arquitetura/escolhas-tecnicas-e-arquiteturais.md`](docs/arquitetura/escolhas-tecnicas-e-arquiteturais.md)
+- [`docs/dados/dados-de-sprints.md`](docs/dados/dados-de-sprints.md)
+- [`docs/integracoes/openai.md`](docs/integracoes/openai.md)
+- [`docs/observabilidade/logs-e-erros.md`](docs/observabilidade/logs-e-erros.md)
+- [`docs/rag/estrategia-rag.md`](docs/rag/estrategia-rag.md)
+- [`docs/seguranca/autenticacao-e-seguranca.md`](docs/seguranca/autenticacao-e-seguranca.md)
+- [`docs/testes/estrategia-de-testes.md`](docs/testes/estrategia-de-testes.md)
+- [`docs/deploy/ambiente-de-desenvolvimento.md`](docs/deploy/ambiente-de-desenvolvimento.md)
+
+## Gitflow
+
+O versionamento segue Gitflow, com branches de funcionalidade, correção,
+documentação e testes separadas por escopo. Exemplos:
+
+```text
+feature/adicionar-rota-rag
+fix/corrigir-validacao-rank
+docs/documentar-openai
+test/cobrir-carregamento-sprints
+```
+
+Mensagens de commit devem ser claras, em português e focadas na alteração
+realizada.
