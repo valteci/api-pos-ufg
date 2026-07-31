@@ -47,6 +47,24 @@ app/
 
 Decisão: rotas HTTP devem orquestrar dependências, autenticação, schemas e códigos HTTP. Regras de negócio, leitura de dados, geração de prompts, RAG, cache e integrações externas devem ficar em serviços ou integrações próprias.
 
+## Interface web
+
+Decisão: manter uma interface estática em HTML, CSS e JavaScript, servida por
+Nginx como serviço separado no Compose. O Nginx encaminha `/api/*` para o
+FastAPI, evitando configuração de origem cruzada no fluxo normal do navegador.
+
+Essa abordagem não adiciona uma cadeia de build frontend, mantém o ambiente
+reproduzível e preserva a API como fonte única das regras de autenticação,
+validação e negócio. O frontend realiza apenas validações de experiência e
+apresentação; ele não acessa arquivos em `data/`, OpenAI, Redis ou ChromaDB
+diretamente.
+
+O mesmo `AUTH_TOKEN` usado pela API é injetado pelo contêiner em um metadado do
+HTML gerado, permitindo que o navegador monte o header Bearer sem entrada
+manual. O modelo versionado mantém apenas um marcador e não contém credencial
+real. Como a credencial entregue ao navegador pode ser inspecionada, essa
+decisão é limitada a ambientes locais ou com usuários confiáveis.
+
 ## FastAPI e Pydantic
 
 Decisão: usar FastAPI para rotas e documentação OpenAPI automática, e Pydantic para validações, schemas de entrada e saída e configurações por ambiente.

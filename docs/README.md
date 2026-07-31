@@ -14,6 +14,7 @@ Este diretório concentra a documentação técnica, arquitetural, operacional e
 - [Logs, erros e observabilidade](observabilidade/logs-e-erros.md)
 - [Estratégia de testes](testes/estrategia-de-testes.md)
 - [Ambiente de desenvolvimento](deploy/ambiente-de-desenvolvimento.md)
+- [Interface web](frontend/interface-web.md)
 - [Backlog de implementação](tasks/README.md)
 
 ## Escopo atual

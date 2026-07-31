@@ -52,6 +52,25 @@ Testes que dependem de Redis ou ChromaDB reais devem ser marcados explicitamente
 
 Chamadas reais à OpenAI não devem ocorrer por padrão.
 
+## Testes da interface web
+
+`tests/test_interface_web.py` valida sem navegador ou serviços externos:
+
+- presença dos formulários de resumo e RAG;
+- unicidade dos identificadores HTML;
+- chamadas aos endpoints corretos com header Bearer;
+- injeção codificada do token de ambiente no metadado;
+- ausência do campo de digitação do token e da marca visual;
+- ausência de persistência do token no navegador;
+- renderização sem `innerHTML`;
+- cabeçalhos defensivos e proxy reverso do Nginx;
+- publicação segura dos arquivos estáticos no Compose.
+
+A sintaxe do JavaScript também pode ser verificada com `node --check
+frontend/assets/app.js` quando Node.js estiver disponível. Testes ponta a ponta
+em navegador podem ser adicionados no futuro caso o projeto adote uma
+ferramenta específica para esse fim.
+
 ## Fixtures
 
 Fixtures devem representar:

@@ -16,6 +16,11 @@ A implementação atual aplica autenticação no router versionado `/v1`.
 `POST /v1/rag` já executa recuperação de fragmentos sobre o índice vetorial e
 `POST /v1/resumos` já gera respostas consultivas com base nos dados de sprint.
 
+A interface estática é servida por um contêiner Nginx separado e não constitui
+uma rota de negócio FastAPI. O modelo HTML versionado não contém dados de sprint
+nem credenciais reais. Toda obtenção de dados continua ocorrendo nas rotas
+protegidas sob `/v1`.
+
 Falhas de autenticação retornam `401 Unauthorized` com `WWW-Authenticate:
 Bearer`. O valor recebido no header `Authorization` não é retornado ao cliente
 nem registrado em log.
@@ -96,7 +101,8 @@ exigir falha fechada.
 
 ## Segredos
 
-Não podem ser expostos:
+Não podem ser expostos em logs, erros, arquivos versionados ou respostas de
+negócio:
 
 - `OPENAI_API_KEY`;
 - `AUTH_TOKEN`;
@@ -104,4 +110,38 @@ Não podem ser expostos:
 - URLs com credenciais;
 - prompts completos quando contiverem dados sensíveis.
 
-Logs e respostas HTTP devem ser sanitizados.
+Logs e respostas HTTP de negócio devem ser sanitizados. A entrega controlada de
+`AUTH_TOKEN` no documento da interface é a exceção operacional descrita abaixo;
+por isso, esse token não deve ser considerado secreto para quem puder acessar o
+frontend.
+
+## Segurança da interface web
+
+O serviço `frontend` recebe `AUTH_TOKEN` por variável de ambiente. Ao iniciar, um
+script codifica o valor em Base64 e o injeta no metadado `api-auth-token` do HTML
+gerado dentro do contêiner. O JavaScript decodifica o valor e o usa somente para
+montar o header `Authorization`, sem campo de digitação e sem persistência em
+`localStorage`, `sessionStorage`, cookies ou parâmetros de URL. Nenhum valor real
+é mantido no arquivo versionado.
+
+Base64 protege a estrutura do atributo HTML contra caracteres especiais, mas
+não oculta a credencial de quem recebe a página. Portanto, a interface deve ser
+restrita a usuários confiáveis. Um ambiente público ou multiusuário deve trocar
+esse fluxo por sessão segura, credenciais individuais ou provedor de identidade.
+
+Conteúdo retornado pela API é criado com `textContent` e APIs de nós do DOM, sem
+uso de `innerHTML`. Essa decisão impede que texto malicioso presente em uma
+sprint seja interpretado como marcação executável.
+
+O Nginx do frontend envia os seguintes controles defensivos:
+
+- Content Security Policy restrita à própria origem;
+- bloqueio de incorporação por frames;
+- `X-Content-Type-Options: nosniff`;
+- `Referrer-Policy: no-referrer`;
+- bloqueio de câmera, microfone e geolocalização.
+
+O ambiente do Compose usa HTTP apenas para desenvolvimento local. Em produção,
+o frontend e a API devem ser publicados atrás de TLS, o token deve ser
+individual e rotacionável, e a autenticação simples pode evoluir para OAuth2 ou
+outro provedor de identidade.

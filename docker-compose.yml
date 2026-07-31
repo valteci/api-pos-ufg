@@ -1,4 +1,19 @@
 services:
+  frontend:
+    image: nginx:alpine
+    environment:
+      AUTH_TOKEN: ${AUTH_TOKEN:?AUTH_TOKEN deve ser configurado no .env}
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend/index.html:/opt/frontend/index.html.template:ro
+      - ./frontend/preparar-index.sh:/opt/frontend/preparar-index.sh:ro
+      - ./frontend/assets:/usr/share/nginx/html/assets:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    command: ["/bin/sh", "-c", "/bin/sh /opt/frontend/preparar-index.sh && exec nginx -g 'daemon off;'"]
+
   api:
     build:
       context: .
@@ -39,6 +54,7 @@ services:
       - "8000:8000"
     volumes:
       - ./app:/app/app
+      - ./frontend:/app/frontend:ro
       - ./data:/app/data:ro
       - ./data/embeddings:/app/data/embeddings
       - ./logs:/app/logs

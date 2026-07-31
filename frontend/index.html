@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Interface web para consultar e resumir sprints com IA." />
+    <meta name="api-base-url" content="/api" />
+    <meta name="api-auth-token" content="__AUTH_TOKEN_BASE64__" />
+    <title>Consulta de sprints com IA</title>
+    <link rel="stylesheet" href="/assets/estilos.css" />
+    <script src="/assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="atalho-conteudo" href="#conteudo-principal">Ir para o conteúdo</a>
+
+    <div class="aplicacao">
+      <header class="cabecalho">
+        <div class="estado-api" id="estado-api" role="status" aria-live="polite">
+          <span class="estado-api-ponto" aria-hidden="true"></span>
+          <span id="estado-api-texto">Verificando API</span>
+        </div>
+      </header>
+
+      <main class="layout" id="conteudo-principal">
+        <aside class="barra-lateral" aria-label="Sobre as consultas">
+          <div>
+            <p class="sobretitulo">Consultas com IA</p>
+            <h1>Converse com os dados da sua sprint.</h1>
+            <p class="introducao">
+              Gere sínteses objetivas ou encontre os trechos mais relevantes de tarefas e subtarefas.
+            </p>
+          </div>
+
+        </aside>
+
+        <section class="area-trabalho" aria-label="Consultas de sprint">
+          <div class="abas" role="tablist" aria-label="Tipo de consulta">
+            <button
+              class="aba ativa"
+              id="aba-resumos"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="painel-resumos"
+              data-painel="painel-resumos"
+            >
+              <span class="aba-numero">01</span>
+              Resumo consultivo
+            </button>
+            <button
+              class="aba"
+              id="aba-rag"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="painel-rag"
+              tabindex="-1"
+              data-painel="painel-rag"
+            >
+              <span class="aba-numero">02</span>
+              Busca RAG
+            </button>
+          </div>
+
+          <section class="painel" id="painel-resumos" role="tabpanel" aria-labelledby="aba-resumos">
+            <div class="painel-cabecalho">
+              <div>
+                <p class="sobretitulo">Visão executiva</p>
+                <h2>O que você quer entender?</h2>
+              </div>
+              <span class="selo">Resposta com IA</span>
+            </div>
+
+            <form id="form-resumos" novalidate>
+              <div class="grupo-campo">
+                <div class="linha-label">
+                  <label for="pergunta-resumo">Pergunta</label>
+                  <span id="contador-pergunta" aria-live="polite">0 / 4000</span>
+                </div>
+                <textarea
+                  id="pergunta-resumo"
+                  name="pergunta"
+                  rows="5"
+                  minlength="1"
+                  maxlength="4000"
+                  required
+                  placeholder="Ex.: Como está o andamento da sprint 75?"
+                ></textarea>
+              </div>
+
+              <div class="sugestoes" aria-label="Perguntas sugeridas">
+                <span>Sugestões</span>
+                <button type="button" data-pergunta="Quais tarefas ainda estão pendentes?">Tarefas pendentes</button>
+                <button type="button" data-pergunta="Quem está trabalhando em cada tarefa?">Responsáveis</button>
+                <button type="button" data-pergunta="Quais são os principais riscos para concluir a sprint?">Riscos da sprint</button>
+              </div>
+
+              <div class="grupo-campo">
+                <label for="sprints-resumo">Sprints <span class="opcional">opcional</span></label>
+                <input
+                  id="sprints-resumo"
+                  name="sprints"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="sprint-75, sprint-76"
+                  aria-describedby="ajuda-sprints-resumo"
+                />
+                <p id="ajuda-sprints-resumo" class="texto-ajuda">
+                  Separe por vírgulas. Sem valores, a API define o escopo a partir da pergunta.
+                </p>
+              </div>
+
+              <button class="botao-principal" type="submit">
+                <span class="botao-texto">Gerar resumo</span>
+                <span class="carregando" aria-hidden="true"></span>
+                <span class="seta" aria-hidden="true">→</span>
+              </button>
+            </form>
+
+            <div class="mensagem-formulario" id="mensagem-resumos" role="alert" hidden></div>
+
+            <section class="resultado" id="resultado-resumos" aria-labelledby="titulo-resultado-resumos" hidden tabindex="-1">
+              <div class="resultado-cabecalho">
+                <div>
+                  <p class="sobretitulo">Síntese gerada</p>
+                  <h3 id="titulo-resultado-resumos">Resposta</h3>
+                </div>
+                <span class="resultado-marca" aria-hidden="true">IA</span>
+              </div>
+              <p class="resposta-destaque" id="texto-resumo"></p>
+              <div class="escopo-resultado">
+                <strong>Sprints consultadas</strong>
+                <div class="lista-etiquetas" id="sprints-consultadas-resumo"></div>
+              </div>
+              <div class="fontes">
+                <h4>Fontes utilizadas</h4>
+                <div id="fontes-resumo"></div>
+              </div>
+            </section>
+          </section>
+
+          <section class="painel" id="painel-rag" role="tabpanel" aria-labelledby="aba-rag" hidden>
+            <div class="painel-cabecalho">
+              <div>
+                <p class="sobretitulo">Recuperação semântica</p>
+                <h2>Encontre contexto nas sprints.</h2>
+              </div>
+              <span class="selo">Busca vetorial</span>
+            </div>
+
+            <form id="form-rag" novalidate>
+              <div class="grupo-campo">
+                <div class="linha-label">
+                  <label for="mensagem-rag">Mensagem de busca</label>
+                  <span id="contador-mensagem" aria-live="polite">0 / 4000</span>
+                </div>
+                <textarea
+                  id="mensagem-rag"
+                  name="mensagem"
+                  rows="4"
+                  minlength="1"
+                  maxlength="4000"
+                  required
+                  placeholder="Ex.: funcionalidade de permissão de usuários no sistema"
+                ></textarea>
+              </div>
+
+              <div class="grupo-campo">
+                <label for="sprints-rag">Sprints <span class="opcional">opcional</span></label>
+                <input
+                  id="sprints-rag"
+                  name="sprints"
+                  type="text"
+                  autocomplete="off"
+                  placeholder="sprint-75, sprint-76"
+                  aria-describedby="ajuda-sprints-rag"
+                />
+                <p id="ajuda-sprints-rag" class="texto-ajuda">
+                  Separe por vírgulas. Sem valores, todas as sprints disponíveis são consideradas.
+                </p>
+              </div>
+
+              <div class="grade-parametros">
+                <div class="grupo-campo">
+                  <div class="linha-label">
+                    <label for="rank-rag">Rank</label>
+                    <output id="valor-rank" for="rank-rag">3 fragmentos</output>
+                  </div>
+                  <input id="rank-rag" name="rank" type="range" min="1" max="10" value="3" />
+                  <p class="texto-ajuda">Quantidade de resultados mais próximos.</p>
+                </div>
+
+                <div class="grupo-campo">
+                  <label for="tamanho-fragmento">Tamanho do fragmento</label>
+                  <div class="campo-com-sufixo">
+                    <input
+                      id="tamanho-fragmento"
+                      name="tamanho_fragmento"
+                      type="number"
+                      min="1"
+                      max="3000"
+                      value="1000"
+                      required
+                    />
+                    <span>caracteres</span>
+                  </div>
+                  <p class="texto-ajuda">Limite aplicado a cada fragmento.</p>
+                </div>
+              </div>
+
+              <button class="botao-principal" type="submit">
+                <span class="botao-texto">Buscar fragmentos</span>
+                <span class="carregando" aria-hidden="true"></span>
+                <span class="seta" aria-hidden="true">→</span>
+              </button>
+            </form>
+
+            <div class="mensagem-formulario" id="erro-rag" role="alert" hidden></div>
+
+            <section class="resultado" id="resultado-rag" aria-labelledby="titulo-resultado-rag" hidden tabindex="-1">
+              <div class="resultado-cabecalho">
+                <div>
+                  <p class="sobretitulo">Resultados ordenados</p>
+                  <h3 id="titulo-resultado-rag">Fragmentos encontrados</h3>
+                </div>
+                <span class="contador-resultados" id="quantidade-fragmentos"></span>
+              </div>
+              <div class="escopo-resultado">
+                <strong>Sprints consultadas</strong>
+                <div class="lista-etiquetas" id="sprints-consultadas-rag"></div>
+              </div>
+              <div class="lista-fragmentos" id="fragmentos-rag"></div>
+            </section>
+          </section>
+        </section>
+      </main>
+
+      <footer class="rodape">
+        <span>Interface web da API de sprints</span>
+        <a href="/api/openapi.json" target="_blank" rel="noopener noreferrer">Contrato OpenAPI ↗</a>
+      </footer>
+    </div>
+  </body>
+</html>
