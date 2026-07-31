@@ -55,6 +55,18 @@ MAX_SPRINTS_PER_REQUEST=20
 
 Segredos devem ser preenchidos em `.env` local não versionado. `.env.example` pode existir apenas com valores fictícios.
 
+## Base documental versionada
+
+Os 20 documentos de sprint em `data/` são versionados junto com o código-fonte.
+Os embeddings exportados em `data/embeddings/` também acompanham o repositório
+para permitir a carga automática do ChromaDB. Portanto, depois de clonar o projeto,
+o único arquivo que precisa ser recebido separadamente é o `.env`, pois ele contém
+as configurações e os segredos usados na demonstração.
+
+Quando os documentos forem modificados, a base e os embeddings reexportados devem
+ser versionados na mesma mudança para evitar que a aplicação carregue vetores
+antigos.
+
 ## Compose
 
 O `docker-compose.yml` carrega variáveis a partir de `.env` com `env_file`. As
@@ -62,8 +74,8 @@ variáveis essenciais `AUTH_TOKEN`, `OPENAI_API_KEY`, `OPENAI_LLM_MODEL` e
 `OPENAI_EMBEDDING_MODEL` são repassadas explicitamente para o serviço `api` e
 não têm fallback hardcoded. `AUTH_TOKEN` também é repassado isoladamente ao
 serviço `frontend`; as credenciais da OpenAI não chegam a esse contêiner. Valores
-não secretos usam defaults seguros. O diretório `data/` é montado como leitura
-em `/app/data`, alinhado ao `DATA_DIR` padrão.
+não secretos usam defaults seguros. O diretório versionado `data/` é montado como
+leitura em `/app/data`, alinhado ao `DATA_DIR` padrão.
 
 O serviço `chromadb` está declarado para persistir embeddings em volume Docker
 nomeado e fica acessível pela API em `http://chromadb:8000`. Para acesso local

@@ -1,0 +1,4 @@
+# Diretório de embeddings exportados do ChromaDB.
+# Os arquivos .json gerados por `python -m app.cli.exportar_embeddings`
+# ficam aqui e são carregados automaticamente na inicialização da API
+# quando a coleção vetorial está vazia.

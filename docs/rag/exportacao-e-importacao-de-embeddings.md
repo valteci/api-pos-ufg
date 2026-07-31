@@ -1,7 +1,7 @@
 # Exportação e importação de embeddings
 
 Este documento descreve como persistir os embeddings gerados pelo RAG em
-arquivos versionáveis e como recarregá-los para o ChromaDB, inclusive de forma
+arquivos versionados e como recarregá-los para o ChromaDB, inclusive de forma
 automática na inicialização da API.
 
 ## Motivação
@@ -14,8 +14,10 @@ para:
 - versionar o índice junto ao restante do projeto;
 - subir um ambiente funcional sem depender da OpenAI no primeiro boot.
 
-A origem lógica dos dados continua sendo `data/`. Os arquivos de embeddings são
-um artefato derivado da indexação, não uma fonte de verdade independente.
+A origem lógica dos dados continua sendo `data/`. Tanto os 20 documentos de
+sprint quanto os arquivos exportados em `data/embeddings/` fazem parte do
+repositório. Os arquivos de embeddings são um artefato derivado da indexação, não
+uma fonte de verdade independente.
 
 ## Diretório e formato
 
@@ -114,9 +116,12 @@ Quando os arquivos de sprint mudarem, o fluxo recomendado é:
 
 1. Reindexar: `python -m app.cli.indexar_vetores --reindexar`.
 2. Reexportar: `python -m app.cli.exportar_embeddings`.
-3. Versionar os arquivos atualizados em `data/embeddings`.
+3. Versionar os documentos alterados e os arquivos atualizados em
+   `data/embeddings` na mesma mudança.
 
-Assim, o índice persistido permanece consistente com os dados das sprints.
+Assim, o índice persistido permanece consistente com os dados das sprints. Um
+clone novo do repositório recebe a base e os embeddings necessários para a carga
+automática, ficando de fora apenas configurações locais e segredos do `.env`.
 
 ## Variáveis de ambiente
 

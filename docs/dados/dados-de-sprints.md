@@ -8,12 +8,31 @@ Exemplo:
 
 ```text
 data/
-├── sprint-75.json
-├── sprint-76.json
-└── sprint-77.json
+├── Sprint 60.json
+├── Sprint 61.json
+├── ...
+├── Sprint 79.json
+└── embeddings/
 ```
 
 O identificador lógico de uma sprint deve ser o nome do arquivo sem a extensão `.json`.
+
+## Versionamento da base
+
+A pasta `data/` faz parte do repositório Git. Os 20 documentos de sprint, da
+Sprint 60 até a Sprint 79, acompanham o código-fonte e fazem parte da entrega do
+trabalho. Com isso, um novo ambiente recebe a mesma base documental ao clonar o
+repositório e não depende de uma cópia manual dos arquivos.
+
+Os arquivos de `data/embeddings/` também são versionados, pois são artefatos
+derivados usados para reconstruir rapidamente o índice do ChromaDB. Quando uma
+sprint for criada, alterada ou removida, a mudança deve incluir a reindexação e a
+nova exportação dos embeddings. Assim, os documentos de origem e os vetores
+versionados permanecem compatíveis.
+
+A pasta não deve receber `.env`, chaves da OpenAI, tokens ou qualquer outro
+segredo. O versionamento de `data/` abrange somente os documentos necessários para
+o trabalho e os artefatos de embeddings previstos pelo projeto.
 
 ## Modelo conceitual
 

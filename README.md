@@ -75,6 +75,10 @@ em vários casos, marcações HTML que vieram da ferramenta de gerenciamento do
 projeto. Durante a preparação, a aplicação transforma esses dados em textos que
 podem ser consultados pela IA.
 
+Os documentos da pasta `data/` fazem parte do repositório Git e acompanham a
+entrega do trabalho. Dessa forma, ao clonar o projeto, o professor já terá acesso
+às 20 sprints usadas pela aplicação, sem precisar copiar a base separadamente.
+
 A base possui os seguintes números:
 
 | Conteúdo | Quantidade |
@@ -177,10 +181,10 @@ coleção.
 
 Essa exportação ajuda na demonstração do trabalho. Gerar todos os embeddings
 novamente exige tempo e utiliza créditos da API da OpenAI. Como os arquivos
-exportados estão no projeto, a aplicação consegue importá-los automaticamente
-quando encontra o ChromaDB vazio. Mesmo assim, o processo completo de geração
-continua disponível e pode ser reproduzido usando os comandos descritos mais
-adiante.
+exportados também são versionados no projeto, a aplicação consegue importá-los
+automaticamente quando encontra o ChromaDB vazio. Mesmo assim, o processo completo
+de geração continua disponível e pode ser reproduzido usando os comandos descritos
+mais adiante.
 
 Sempre que algum arquivo da pasta `data/` for alterado, os embeddings daquela
 sprint também precisam ser atualizados. É possível reindexar toda a base ou apenas
@@ -249,7 +253,7 @@ em `data/`, os testes em `tests/` e a documentação complementar em `docs/`.
 ```text
 .
 ├── app/                    aplicação FastAPI e regras do sistema
-├── data/                   sprints e embeddings exportados
+├── data/                   sprints e embeddings exportados e versionados
 ├── docs/                   documentação complementar
 ├── frontend/               interface web e configuração do Nginx
 ├── logs/                   logs estruturados da aplicação
@@ -353,11 +357,11 @@ serviços.
 
 ### 8.3 Carregamento dos embeddings existentes
 
-O caminho mais rápido para demonstrar a aplicação é usar os embeddings que já
-estão em `data/embeddings`. Quando `EMBEDDINGS_AUTOLOAD_ENABLED=true`, a API
-verifica a coleção do ChromaDB durante a inicialização. Se a coleção estiver vazia,
-os arquivos exportados são importados automaticamente. Se a coleção já possuir
-dados, nenhuma duplicação é feita.
+O caminho mais rápido para demonstrar a aplicação é usar os embeddings versionados
+em `data/embeddings`. Quando `EMBEDDINGS_AUTOLOAD_ENABLED=true`, a API verifica a
+coleção do ChromaDB durante a inicialização. Se a coleção estiver vazia, os arquivos
+exportados são importados automaticamente. Se a coleção já possuir dados, nenhuma
+duplicação é feita.
 
 Por isso, na execução normal não é necessário gerar todos os embeddings antes de
 abrir a interface. Esse comportamento evita uma nova cobrança da OpenAI toda vez
@@ -516,7 +520,7 @@ aplicados:
 | Resposta baseada no contexto | A rota de resumos monta o contexto a partir das sprints e orienta o LLM a não inventar informações. |
 | Exibição das fontes | A interface mostra sprint, origem, tipo, caminho e título quando disponível. |
 | Organização em módulos | Rotas, schemas, serviços e integrações ficam em módulos separados. |
-| Controle de versão | O projeto é mantido em um repositório Git. |
+| Controle de versão | O código, os 20 documentos de `data/` e os embeddings exportados são mantidos no repositório Git. |
 | Configuração por ambiente | Chaves, modelos, endereços e limites são definidos pelo `.env`. |
 | Tratamento de erros | Entradas e integrações são validadas e falhas recebem mensagens controladas. |
 | Documentação | Este README funciona como relatório e a pasta `docs/` complementa os detalhes. |
@@ -546,9 +550,10 @@ relacioná-la aos documentos usados.
 
 Outro resultado foi a possibilidade de executar todos os componentes com Docker.
 O professor precisa apenas colocar o `.env` recebido na raiz do projeto, subir os
-serviços e abrir a interface. Os embeddings exportados tornam a primeira execução
-mais rápida e econômica, enquanto o comando de reindexação permite demonstrar que
-eles foram realmente produzidos a partir dos documentos da pasta `data/`.
+serviços e abrir a interface, pois a base documental já acompanha o repositório. Os
+embeddings exportados tornam a primeira execução mais rápida e econômica, enquanto
+o comando de reindexação permite demonstrar que eles foram realmente produzidos a
+partir dos documentos da pasta `data/`.
 
 Como limitação, as respostas ainda dependem da qualidade das descrições registradas
 nas sprints. Se uma tarefa tiver pouco texto ou informações incompletas, a IA não
